@@ -1,0 +1,82 @@
+---
+version: '2.0'
+
+project_create:
+  type: direct
+  input:
+    - id
+    - name
+    - description
+    - enabled
+    - owner_name
+
+  task-defaults:
+    on-error:
+      - project_delete
+
+  output:
+    project_id: <% $.project_id %>
+
+  tasks:
+    create_project:
+      action: keystone.projects_create name=<% $.name  %> domain='default' description=<% $.description  %> enabled=<% $.enabled %> id=<% $.id  %>
+
+      publish:
+        project_id: <% task(create_project).result.id %>
+
+      on-success:
+        - get_user_id
+
+    get_user_id:
+      action: keystone.users_find name=<% $.owner_name %>
+      publish:
+        user_id: <% task(get_user_id).result.id %>
+      on-success:
+        - get_role_id
+
+    get_role_id:
+      action: keystone.roles_find name='_member_'
+      publish:
+        role_id: <% task(get_role_id).result.id %>
+      on-success:
+        - add_project_members
+
+    add_project_members:
+      action: keystone.roles_grant role=<% $.role_id %> user=<% $.user_id %> project=<% $.project_id %>
+      on-success:
+        - update_quota
+
+    update_quota:
+      action: nova.quotas_update tenant_id=<% $.project_id %> cores=10 ram=20480 instances=5
+      on-success:
+        - update_cinder_quota
+
+    update_cinder_quota:
+      action: cinder.quotas_update tenant_id=<% $.project_id %> volumes=10 gigabytes=100 snapshots=10
+      on-success:
+        - get_volume_types
+
+    get_volume_types:
+      action: cinder.volume_types_list
+      publish:
+        volume_type_names: <% task(get_volume_types).result.name %>
+      on-success:
+        - update_cinder_quota_volume_types
+
+    update_cinder_quota_volume_types:
+      with-items: vt_name in <% $.volume_type_names %>
+      action: cinder.quotas_update tenant_id=<% $.project_id %> volumes_<% vt_name %>=10 gigabytes_<% vt_name %>=1000 snapshots_<% vt_name %>=10
+      on-success:
+        - set_fim_properties: <% not ('Personal' in $.name)  %>
+        - set_personal_project_properties: <% 'Personal' in $.name  %>
+
+    set_fim_properties:
+      action: keystone.projects_update project=<% $.project_id %> fim-lock=true fim-skip=true
+
+    set_personal_project_properties:
+      action: keystone.projects_update project=<% $.project_id %> accounting-group='personal' type='personal'
+
+    project_delete:
+      action: keystone.projects_delete project=<% $.project_id %>
+      on-complete:
+        - fail
