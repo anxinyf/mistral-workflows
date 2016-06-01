@@ -1,0 +1,19 @@
+---
+version: '2.0'
+
+server_snapshot:
+  type: direct
+  description: 'Create a snapshot from a server'
+  input:
+    - server_id
+    - snapshot_name
+
+  output:
+    snapshot_id: <% $.snapshot_id %>
+
+  tasks:
+    snapshot_vm:
+      action: nova.servers_create_image server=<% $.server_id %> image_name=<% $.snapshot_name %>
+      publish:
+        snapshot_id: <% task(snapshot_vm).result.id %>
+
