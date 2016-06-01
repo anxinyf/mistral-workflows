@@ -1,0 +1,64 @@
+---
+version: '2.0'
+
+project_delete:
+  type: direct
+  input:
+    - id
+
+  tasks:
+    # Checks if the project is locked
+    get_fim_lock:
+      action: keystone.projects_get project=<% $.id %>
+      publish:
+        fim_lock: <% task(get_fim_lock).result.get("fim-lock") %>
+      on-success:
+        - fail: <% $.fim_lock != null and $.fim_lock = true %>
+        - get_all_volumes: <% $.fim_lock = null %>
+
+    # Get all volumes in the project
+    get_all_volumes:
+      action: cinder.volumes_list
+      input:
+        search_opts:
+          all_tenants: true
+          project_id: <% $.id %>
+      publish:
+        volume_ids: <% task(get_all_volumes).result.id %>
+      on-success:
+        - detach_volumes
+
+    # Detach all volumes in the project
+    detach_volumes:
+      with-items: volume_id in <% $.volume_ids %>
+      action: cinder.volumes_detach volume=<% $.volume_id %>
+      on-success:
+        - get_vms
+
+    # Get all VMs in the project
+    get_vms:
+      action: nova.servers_list
+      input:
+        search_opts:
+          all_tenants: true
+          project_id: <% $.id %>
+      publish:
+        server_ids: <% task(get_vms).result.id %>
+      on-success:
+        - delete_vms
+
+    # Delete the VMs
+    delete_vms:
+      with-items: server_id in <% $.server_ids %>
+      action: nova.servers_delete server=<% $.server_id %>
+      on-success:
+        - delete_volumes
+
+    # Delete the volumes
+    delete_volumes:
+      with-items: volume_id in <% $.volume_ids %>
+      action: cinder.volumes_delete volume=<% $.volume_id %>
+
+    # Finally, delete the project
+    delete_project:
+      action: keystone.projects_delete project=<% $.id %>
