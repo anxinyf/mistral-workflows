@@ -1,0 +1,43 @@
+---
+version: '2.0'
+
+project_update:
+  type: direct
+  input:
+    - id
+    - name
+    - description
+    - enabled
+    - owner_name
+
+  tasks:
+
+    check_stop_instances:
+      action: keystone.projects_get project=<% $.id %>
+      publish:
+        fim_skip: <% task(check_stop_instances).result.get("fim-skip") %>
+        current_enabled: <% task(check_stop_instances).result.get("enabled") %>
+      on-success:
+        # If project metadata has fim-skip=True, the project instances will be not stoped.
+        - update: <% $.fim_skip = null or $.fim_skip = "True" or $.current_enabled = false or $.enabled = true %>
+        - stop_instances_get_vms: <% $.fim_skip = "False" and $.current_enabled = true and $.enabled = false %>
+
+    stop_instances_get_vms:
+      action: nova.servers_list
+      input:
+        search_opts:
+          all_tenants: true
+          project_id: <% $.id %>
+      publish:
+        server_ids: <% task(stop_instances_get_vms).result.id %>
+      on-success:
+        - stop_instances
+
+    stop_instances:
+      with-items: server_id in <% $.server_ids %>
+      action: nova.servers_stop server=<% $.server_id %>
+      on-complete:
+        - update
+
+    update:
+      action: keystone.projects_update project=<% $.id %> name=<% $.name  %> description=<% $.description  %> enabled=<% $.enabled %>
