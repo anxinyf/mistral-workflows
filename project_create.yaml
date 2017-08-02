@@ -2,57 +2,110 @@
 version: '2.0'
 
 project_create:
+  description: Creates a Project, assigns the ownership/membership, sets the default quotas and extra properties
   type: direct
+
   input:
     - id
     - name
     - description
     - enabled
-    - owner_name
-
-  task-defaults:
-    on-error:
-      - project_delete
+    - owner
 
   output:
-    project_id: <% $.project_id %>
+    id: <% $.project_id %>
+    name: <% $.name %>
+    description: <% $.description %>
+    enabled: <% $.enabled %>
+    owner: <% $.owner %>
 
   tasks:
-    create_project:
-      action: keystone.projects_create name=<% $.name  %> domain='default' description=<% $.description  %> enabled=<% $.enabled %> id=<% $.id  %>
+    project_exists:
+      action: keystone.projects_get project=<% $.id %>
+      publish:
+        project_id: <% task(project_exists).result.id %>
+      on-success:
+        - get_user_id
+      on-error:
+        - create_project
 
+    create_project:
+      action: keystone.projects_create
+      input:
+        id: <% $.id %>
+        name: <% $.name %>
+        domain: default
+        description: <% $.description %>
+        enabled: <% $.enabled %>
       publish:
         project_id: <% task(create_project).result.id %>
-
       on-success:
         - get_user_id
 
     get_user_id:
-      action: keystone.users_find name=<% $.owner_name %>
+      action: keystone.users_find
+      input:
+        name: <% $.owner %>
       publish:
-        user_id: <% task(get_user_id).result.id %>
+        owner_id: <% task(get_user_id).result.id %>
       on-success:
-        - get_role_id
+        - get_owner_role_id
+        - get_member_role_id
 
-    get_role_id:
-      action: keystone.roles_find name='_member_'
+    get_owner_role_id:
+      action: keystone.roles_find
+      input:
+        name: 'owner'
       publish:
-        role_id: <% task(get_role_id).result.id %>
+        owner_role_id: <% task(get_owner_role_id).result.id %>
       on-success:
-        - add_project_members
+        - set_project_owner
 
-    add_project_members:
-      action: keystone.roles_grant role=<% $.role_id %> user=<% $.user_id %> project=<% $.project_id %>
+    get_member_role_id:
+      action: keystone.roles_find
+      input:
+        name: 'Member'
+      publish:
+        member_role_id: <% task(get_member_role_id).result.id %>
       on-success:
-        - update_quota
+        - set_project_member
 
-    update_quota:
-      action: nova.quotas_update tenant_id=<% $.project_id %> cores=10 ram=20480 instances=5
+   set_project_owner:
+      action: keystone.roles_grant
+      input:
+        role: <% $.owner_role_id %>
+        user: <% $.owner_id %>
+        project: <% $.project_id %>
       on-success:
-        - update_cinder_quota
+        - update_compute_quota
 
-    update_cinder_quota:
-      action: cinder.quotas_update tenant_id=<% $.project_id %> volumes=10 gigabytes=100 snapshots=10
+    set_project_member:
+      action: keystone.roles_grant
+      input:
+        role: <% $.member_role_id %>
+        user: <% $.owner_id %>
+        project: <% $.project_id %>
+      on-success:
+        - update_compute_quota
+
+    update_compute_quota:
+      join: all
+      action: nova.quotas_update
+      input:
+        tenant_id: <% $.project_id %>
+        cores: 10
+        ram: 20480
+        instances: 5
+      on-success:
+        - update_volume_quota
+
+    update_volume_quota:
+      action: cinder.quotas_update
+      input:
+        tenant_id: <% $.project_id %>
+        volumes: 10
+        gigabytes: 100
+        snapshots: 10
       on-success:
         - get_volume_types
 
@@ -61,9 +114,9 @@ project_create:
       publish:
         volume_type_names: <% task(get_volume_types).result.name %>
       on-success:
-        - update_cinder_quota_volume_types
+        - update_volume_quota_types
 
-    update_cinder_quota_volume_types:
+    update_volume_quota_types:
       with-items: vt_name in <% $.volume_type_names %>
       action: cinder.quotas_update tenant_id=<% $.project_id %> volumes_<% vt_name %>=10 gigabytes_<% vt_name %>=1000 snapshots_<% vt_name %>=10
       on-success:
@@ -75,8 +128,3 @@ project_create:
 
     set_personal_project_properties:
       action: keystone.projects_update project=<% $.project_id %> accounting-group='personal' type='personal'
-
-    project_delete:
-      action: keystone.projects_delete project=<% $.project_id %>
-      on-complete:
-        - fail
