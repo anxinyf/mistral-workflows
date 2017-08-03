@@ -61,7 +61,7 @@ workflows:
         input:
           id: <% $.project_id %>
 
-      orcherstration:
+      orchestration:
         workflow: orchestration
         input:
           id: <% $.project_id %>
@@ -228,8 +228,8 @@ workflows:
       empty_task:
         action: std.echo output='skip'
 
-  orcherstration:
-    description: Initializes a project on the orcherstration service sets default quotas
+  orchestration:
+    description: Initializes a project on the orchestration service sets default quotas
     type: direct
     input:
       - id
