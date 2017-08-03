@@ -2,10 +2,10 @@
 version: '2.0'
 
 name: project_update
-description: Workbook that contains project_creation workflows
+description: Workbook that contains project_update workflows
 
 workflows:
-  project_update:
+  launch:
     type: direct
     input:
       - id
@@ -21,72 +21,79 @@ workflows:
       owner: <% $.owner %>
 
     tasks:
-      project_update_check_identity:
-        workflow: project_update_check_identity
+      check_identity:
+        workflow: check_identity
         input:
           - id: <% $.id %>
         publish:
-          fim_skip: <% task(project_update_identity_check).result.get("fim-skip") %>
-          current_enabled: <% task(project_update_identity_check).result.get("enabled") %>
+          fim_skip: <% task(check_identity).result.get("fim-skip") %>
+          current_enabled: <% task(check_identity).result.get("enabled") %>
         on-success:
           # If project metadata has fim-skip=True, the project resources will not be affected
-          - project_update_identity: <% $.fim_skip = null or $.fim_skip = "True" or $.current_enabled = false or $.enabled = true %>
-          - project_update_container_infra: <% $.fim_skip = "False" and $.current_enabled = true and $.enabled = false %>
-
-      project_update_container_infra:
-        workflow: project_update_container_infra
+          - identity: <% $.fim_skip = null or $.fim_skip = "True" or $.current_enabled = false or $.enabled = true %>
+          - workengine: <% $.fim_skip = "False" and $.current_enabled = true and $.enabled = false %>
+      
+      workengine:
+        workflow: workengine
         input:
           id: <% $.id %>
         on-success:
-          - project_update_orcherstration
+          - container_infra
 
-      project_update_orcherstration:
-        workflow: project_update_orchestration
+      container_infra:
+        workflow: container_infra
         input:
           id: <% $.id %>
         on-success:
-          - project_update_compute
+          - orcherstration
 
-      project_update_compute:
-        workflow: project_update_compute
+      orcherstration:
+        workflow: orchestration
         input:
           id: <% $.id %>
         on-success:
-          - project_update_blockstorage
-          - project_update_fileshare
-          - project_update_network
+          - compute
 
-      project_update_blockstorage:
-        workflow: project_update_blockstorage
+      compute:
+        workflow: compute
         input:
           id: <% $.id %>
         on-success:
-          - project_update_image
+          - blockstorage
+          - fileshare
+          - network
 
-      project_update_image:
-        workflow: project_update_image
+      blockstorage:
+        workflow: blockstorage
         input:
           id: <% $.id %>
         on-success:
-          - project_update_identity
+          - image
 
-      project_update_fileshare:
-        workflow: project_update_fileshare
+      image:
+        workflow: image
         input:
           id: <% $.id %>
         on-success:
-          - project_update_identity
+          - identity
 
-      project_update_network:
-        workflow: project_update_network
+      fileshare:
+        workflow: fileshare
         input:
           id: <% $.id %>
         on-success:
-          - project_update_identity
+          - identity
 
-      project_update_identity:
+      network:
+        workflow: network
+        input:
+          id: <% $.id %>
+        on-success:
+          - identity
+
+      identity:
         join: all
-        workflow: project_update_identity
+        workflow: identity
         input:
           - id: <% $.id %>
           - name: <% $.name %>
@@ -94,8 +101,9 @@ workflows:
           - enabled: <% $.enabled %>
           - owner: <% $.owner %>
 
-  project_update_check_identity:
-    workflow: project_update_check_identity
+  check_identity:
+    description: Checks if the project can be updated
+    type: direct
     input:
       - id: <% $.id %>
     output:
@@ -110,7 +118,7 @@ workflows:
           fim_skip: <% task(retrieve_project).result.get("fim-skip") %>
           current_enabled: <% task(retrieve_project).result.get("enabled") %>
 
-  project_update_compute:
+  compute:
     description: Updates the status of resources of a project on the compute service
     type: direct
     input:
@@ -131,61 +139,70 @@ workflows:
         with-items: server_id in <% $.server_ids %>
         action: nova.servers_stop server=<% $.server_id %>
 
-  project_update_blockstorage:
+  blockstorage:
     description: Updates the status of resources of a project on the blockstorage service
     type: direct
     input:
       - id
     tasks:
-      empty_action:
+      empty_task:
         action: std.echo output='skip'
 
-  project_update_image:
+  image:
     description: Updates the status of resources of a project on the image service
     type: direct
     input:
       - id
     tasks:
-      empty_action:
+      empty_task:
         action: std.echo output='skip'
 
-  project_update_fileshare:
+  fileshare:
     description: Updates the status of resources of a project on the fileshare service
     type: direct
     input:
       - id
     tasks:
-      empty_action:
+      empty_task:
         action: std.echo output='skip'
 
-  project_update_orcherstration:
+  orcherstration:
     description: Updates the status of resources of a project on the orchestration service
     type: direct
     input:
       - id
     tasks:
-      empty_action:
+      empty_task:
         action: std.echo output='skip'
 
-  project_update_network:
+  network:
     description: Updates the status of resources of a project on the network service
     type: direct
     input:
       - id
     tasks:
-      empty_action:
+      empty_task:
         action: std.echo output='skip'
 
-  project_update_container_infra:
+  container_infra:
     description: Updates the status of resources of a project on the container infrastructure service
     type: direct
     input:
       - id
     tasks:
-      empty_action:
+      empty_task:
         action: std.echo output='skip'
 
-  project_update_identity:
+  workengine:
+    description: Updates the status of resources of a project on the workflow service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
+        action: std.echo output='skip'
+
+  identity:
     description: Updates the status of resources of a project on the identity service
     type: direct
     input:

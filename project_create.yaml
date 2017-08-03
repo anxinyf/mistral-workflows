@@ -5,7 +5,7 @@ name: project_create
 description: Workbook that contains project_creation workflows
 
 workflows:
-  project_create:
+  launch:
     type: direct
     input:
       - id
@@ -21,8 +21,8 @@ workflows:
       owner: <% $.owner %>
 
     tasks:
-      project_create_identity:
-        workflow: project_create_identity
+      identity:
+        workflow: identity
         input:
           id: <% $.id %>
           name: <% $.name %>
@@ -30,52 +30,58 @@ workflows:
           description: <% $.description %>
           enabled: <% $.enabled %>
         publish:
-          project_id: <% task(project_exists).result.id %>
+          project_id: <% task(identity).result.id %>
         on-success:
-          - project_create_blockstorage
-          - project_create_compute
-          - project_create_image
-          - project_create_fileshare
-          - project_create_orcherstration
-          - project_create_network
-          - project_create_container_infra
+          - blockstorage
+          - compute
+          - image
+          - fileshare
+          - orcherstration
+          - network
+          - container_infra
+          - workengine
 
-      project_create_compute:
-        workflow: project_create_compute
+      compute:
+        workflow: compute
         input:
           id: <% $.project_id %>
 
-      project_create_blockstorage:
-        workflow: project_create_blockstorage
+      blockstorage:
+        workflow: blockstorage
         input:
           id: <% $.project_id %>
 
-      project_create_image:
-        workflow: project_create_image
+      image:
+        workflow: image
         input:
           id: <% $.project_id %>
 
-      project_create_fileshare:
-        workflow: project_create_fileshare
+      fileshare:
+        workflow: fileshare
         input:
           id: <% $.project_id %>
 
-      project_create_orcherstration:
-        workflow: project_create_orchestration
+      orcherstration:
+        workflow: orchestration
         input:
           id: <% $.project_id %>
 
-      project_create_network:
-        workflow: project_create_network
+      network:
+        workflow: network
         input:
           id: <% $.project_id %>
 
-      project_create_container_infra:
-        workflow: project_create_container_infra
+      container_infra:
+        workflow: container_infra
         input:
           id: <% $.project_id %>
 
-  project_create_identity:
+      workengine:
+        workflow: workengine
+        input:
+          id: <% $.project_id %>
+
+  identity:
     description: Creates a Project, assigns the ownership/membership
     type: direct
     input:
@@ -143,7 +149,7 @@ workflows:
         on-success:
           - set_project_member
 
-    set_project_owner:
+      set_project_owner:
         action: keystone.roles_grant
         input:
           role: <% $.owner_role_id %>
@@ -163,7 +169,7 @@ workflows:
       set_personal_project_properties:
         action: keystone.projects_update project=<% $.project_id %> accounting-group='personal' type='personal'
 
-  project_create_compute:
+  compute:
     description: Initializes a project on the compute service sets default quotas
     type: direct
     input:
@@ -177,7 +183,7 @@ workflows:
           ram: 20480
           instances: 5
 
-  project_create_blockstorage:
+  blockstorage:
     description: Initializes a project on the blockstorage service sets default quotas
     type: direct
     input:
@@ -204,48 +210,57 @@ workflows:
         with-items: vt_name in <% $.volume_type_names %>
         action: cinder.quotas_update tenant_id=<% $.id %> volumes_<% vt_name %>=10 gigabytes_<% vt_name %>=1000 snapshots_<% vt_name %>=10
 
-  project_create_image:
+  image:
     description: Initializes a project on the image service sets default quotas
     type: direct
     input:
       - id
     tasks:
-      update_image_quota:
+      empty_task:
         action: std.echo output='skip'
 
-  project_create_fileshare:
+  fileshare:
     description: Initializes a project on the fileshare service sets default quotas
     type: direct
     input:
       - id
     tasks:
-      update_image_quota:
+      empty_task:
         action: std.echo output='skip'
 
-  project_create_orcherstration:
+  orcherstration:
     description: Initializes a project on the orcherstration service sets default quotas
     type: direct
     input:
       - id
     tasks:
-      update_image_quota:
+      empty_task:
         action: std.echo output='skip'
 
 
-  project_create_network:
+  network:
     description: Initializes a project on the network service sets default quotas
     type: direct
     input:
       - id
     tasks:
-      update_image_quota:
+      empty_task:
         action: std.echo output='skip'
 
-  project_create_container_infra:
+  container_infra:
     description: Initializes a project on the container infrastructure service sets default quotas
     type: direct
     input:
       - id
     tasks:
-      update_image_quota:
+      empty_task:
+        action: std.echo output='skip'
+
+  workengine:
+    description: Initializes a project on the workflow service sets default quotas
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
         action: std.echo output='skip'

@@ -5,7 +5,7 @@ name: project_delete
 description: Workbook that contains project_deletion workflows
 
 workflows:
-  project_delete:
+  launch:
     type: direct
     input:
       - id
@@ -13,75 +13,83 @@ workflows:
       id: <% $.id %>
 
     tasks:
-      project_delete_check_identity:
-        workflow: project_delete_check_identity
+      check_identity:
+        workflow: check_identity
         input:
           - id: <% $.id %>
         publish:
-          fim_lock: <% task(project_delete_check_identity).result.get("fim-lock") %>
+          fim_lock: <% task(check_identity).result.get("fim-lock") %>
         on-success:
           - fail: <% $.fim_lock != null and $.fim_lock = true %>
-          - project_delete_container_infra: <% $.fim_lock = null %>
-
-      project_delete_container_infra:
-        workflow: project_delete_container_infra
+          - workengine: <% $.fim_lock = null %>
+      
+      workengine:
+        workflow: workengine
         input:
           id: <% $.id %>
         on-success:
-          - project_delete_orcherstration
+          - container_infra
 
-      project_delete_orcherstration:
-        workflow: project_delete_orcherstration
+      container_infra:
+        workflow: container_infra
         input:
           id: <% $.id %>
         on-success:
-          - project_delete_compute
+          - orcherstration
 
-      project_delete_compute:
-        workflow: project_delete_compute
+      orcherstration:
+        workflow: orcherstration
         input:
           id: <% $.id %>
         on-success:
-          - project_delete_blockstorage
-          - project_delete_fileshare
-          - project_delete_network
+          - compute
 
-      project_delete_blockstorage:
-        workflow: project_delete_blockstorage
+      compute:
+        workflow: compute
         input:
           id: <% $.id %>
         on-success:
-          - project_delete_image
+          - blockstorage
+          - fileshare
+          - network
 
-      project_delete_image:
-        workflow: project_delete_image
+      blockstorage:
+        workflow: blockstorage
         input:
           id: <% $.id %>
         on-success:
-          - project_delete_identity
+          - image
 
-      project_delete_fileshare:
-        workflow: project_delete_fileshare
+      image:
+        workflow: image
         input:
           id: <% $.id %>
         on-success:
-          - project_delete_identity
+          - identity
 
-      project_delete_network:
-        workflow: project_delete_network
+      fileshare:
+        workflow: fileshare
         input:
           id: <% $.id %>
         on-success:
-          - project_delete_identity
+          - identity
 
-      project_delete_identity:
+      network:
+        workflow: network
+        input:
+          id: <% $.id %>
+        on-success:
+          - identity
+
+      identity:
         join: all
-        workflow: project_delete_identity
+        workflow: identity
         input:
           - id: <% $.id %>
 
-  project_update_check_identity:
-    workflow: project_update_check_identity
+  check_identity:
+    description: Checks if the project can be deleted
+    type: direct
     input:
       - id: <% $.id %>
     output:
@@ -96,7 +104,7 @@ workflows:
           fim_skip: <% task(retrieve_project).result.get("fim-skip") %>
           current_enabled: <% task(retrieve_project).result.get("enabled") %>
 
-  project_delete_compute:
+  compute:
     description: Deletes all resources of a project on the compute service
     type: direct
     input:
@@ -118,7 +126,7 @@ workflows:
         with-items: server_id in <% $.server_ids %>
           action: nova.servers_delete server=<% $.server_id %>
 
-  project_delete_blockstorage:
+  blockstorage:
     description: Deletes all resources of a project on the blockstorage service
     type: direct
     input:
@@ -140,52 +148,61 @@ workflows:
         with-items: volume_id in <% $.volume_ids %>
         action: cinder.volumes_delete volume=<% $.volume_id %>
 
-  project_delete_image:
+  image:
     description: Deletes all resources of a project on the image service
     type: direct
     input:
       - id
     tasks:
-      empty_action:
+      empty_task:
         action: std.echo output='skip'
 
-  project_delete_fileshare:
+  fileshare:
     description: Deletes all resources of a project on the fileshare service
     type: direct
     input:
       - id
     tasks:
-      empty_action:
+      empty_task:
         action: std.echo output='skip'
 
-  project_delete_orcherstration:
+  orcherstration:
     description: Deletes all resources of a project on the orchestration service
     type: direct
     input:
       - id
     tasks:
-      empty_action:
+      empty_task:
         action: std.echo output='skip'
 
-  project_delete_network:
+  network:
     description: Deletes all resources of a project on the network service
     type: direct
     input:
       - id
     tasks:
-      empty_action:
+      empty_task:
         action: std.echo output='skip'
 
-  project_delete_container_infra:
+  container_infra:
     description: Deletes all resources of a project on the container infrastructure service
     type: direct
     input:
       - id
     tasks:
-      empty_action:
+      empty_task:
         action: std.echo output='skip'
 
-  project_delete_identity:
+  workengine:
+    description: Deletes all resources of a project on the workflow service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
+        action: std.echo output='skip'
+
+  identity:
     description: Deletes all resources of a project on the identity service
     type: direct
     input:
