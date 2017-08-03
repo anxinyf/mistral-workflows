@@ -1,130 +1,251 @@
 ---
 version: '2.0'
 
-project_create:
-  description: Creates a Project, assigns the ownership/membership, sets the default quotas and extra properties
-  type: direct
+name: project_create
+description: Workbook that contains project_creation workflows
 
-  input:
-    - id
-    - name
-    - description
-    - enabled
-    - owner
+workflows:
+  project_create:
+    type: direct
+    input:
+      - id
+      - name
+      - description
+      - enabled
+      - owner
+    output:
+      id: <% $.project_id %>
+      name: <% $.name %>
+      description: <% $.description %>
+      enabled: <% $.enabled %>
+      owner: <% $.owner %>
 
-  output:
-    id: <% $.project_id %>
-    name: <% $.name %>
-    description: <% $.description %>
-    enabled: <% $.enabled %>
-    owner: <% $.owner %>
+    tasks:
+      project_create_identity:
+        workflow: project_create_identity
+        input:
+          id: <% $.id %>
+          name: <% $.name %>
+          domain: default
+          description: <% $.description %>
+          enabled: <% $.enabled %>
+        publish:
+          project_id: <% task(project_exists).result.id %>
+        on-success:
+          - project_create_blockstorage
+          - project_create_compute
+          - project_create_image
+          - project_create_fileshare
+          - project_create_orcherstration
+          - project_create_network
+          - project_create_container_infra
 
-  tasks:
-    project_exists:
-      action: keystone.projects_get project=<% $.id %>
-      publish:
-        project_id: <% task(project_exists).result.id %>
-      on-success:
-        - get_user_id
-      on-error:
-        - create_project
+      project_create_compute:
+        workflow: project_create_compute
+        input:
+          id: <% $.project_id %>
 
-    create_project:
-      action: keystone.projects_create
-      input:
-        id: <% $.id %>
-        name: <% $.name %>
-        domain: default
-        description: <% $.description %>
-        enabled: <% $.enabled %>
-      publish:
-        project_id: <% task(create_project).result.id %>
-      on-success:
-        - get_user_id
+      project_create_blockstorage:
+        workflow: project_create_blockstorage
+        input:
+          id: <% $.project_id %>
 
-    get_user_id:
-      action: keystone.users_find
-      input:
-        name: <% $.owner %>
-      publish:
-        owner_id: <% task(get_user_id).result.id %>
-      on-success:
-        - get_owner_role_id
-        - get_member_role_id
+      project_create_image:
+        workflow: project_create_image
+        input:
+          id: <% $.project_id %>
 
-    get_owner_role_id:
-      action: keystone.roles_find
-      input:
-        name: 'owner'
-      publish:
-        owner_role_id: <% task(get_owner_role_id).result.id %>
-      on-success:
-        - set_project_owner
+      project_create_fileshare:
+        workflow: project_create_fileshare
+        input:
+          id: <% $.project_id %>
 
-    get_member_role_id:
-      action: keystone.roles_find
-      input:
-        name: 'Member'
-      publish:
-        member_role_id: <% task(get_member_role_id).result.id %>
-      on-success:
-        - set_project_member
+      project_create_orcherstration:
+        workflow: project_create_orchestration
+        input:
+          id: <% $.project_id %>
 
-   set_project_owner:
-      action: keystone.roles_grant
-      input:
-        role: <% $.owner_role_id %>
-        user: <% $.owner_id %>
-        project: <% $.project_id %>
-      on-success:
-        - update_compute_quota
+      project_create_network:
+        workflow: project_create_network
+        input:
+          id: <% $.project_id %>
 
-    set_project_member:
-      action: keystone.roles_grant
-      input:
-        role: <% $.member_role_id %>
-        user: <% $.owner_id %>
-        project: <% $.project_id %>
-      on-success:
-        - update_compute_quota
+      project_create_container_infra:
+        workflow: project_create_container_infra
+        input:
+          id: <% $.project_id %>
 
-    update_compute_quota:
-      join: all
-      action: nova.quotas_update
-      input:
-        tenant_id: <% $.project_id %>
-        cores: 10
-        ram: 20480
-        instances: 5
-      on-success:
-        - update_volume_quota
+  project_create_identity:
+    description: Creates a Project, assigns the ownership/membership
+    type: direct
+    input:
+      - id
+      - name
+      - description
+      - enabled
+      - owner
+    output:
+      id: <% $.project_id %>
+      name: <% $.name %>
+      description: <% $.description %>
+      enabled: <% $.enabled %>
+      owner: <% $.owner %>
+    tasks:
+      project_exists:
+        action: keystone.projects_get project=<% $.id %>
+        publish:
+          project_id: <% task(project_exists).result.id %>
+        on-success:
+          - get_user_id
+        on-error:
+          - create_project
 
-    update_volume_quota:
-      action: cinder.quotas_update
-      input:
-        tenant_id: <% $.project_id %>
-        volumes: 10
-        gigabytes: 100
-        snapshots: 10
-      on-success:
-        - get_volume_types
+      create_project:
+        action: keystone.projects_create
+        input:
+          id: <% $.id %>
+          name: <% $.name %>
+          domain: default
+          description: <% $.description %>
+          enabled: <% $.enabled %>
+        publish:
+          project_id: <% task(create_project).result.id %>
+        on-success:
+          - get_user_id
 
-    get_volume_types:
-      action: cinder.volume_types_list
-      publish:
-        volume_type_names: <% task(get_volume_types).result.name %>
-      on-success:
-        - update_volume_quota_types
+      get_user_id:
+        action: keystone.users_find
+        input:
+          name: <% $.owner %>
+        publish:
+          owner_id: <% task(get_user_id).result.id %>
+        on-success:
+          - get_owner_role_id
+          - get_member_role_id
+          - set_fim_properties: <% not ('Personal' in $.name)  %>
+          - set_personal_project_properties: <% 'Personal' in $.name  %>
 
-    update_volume_quota_types:
-      with-items: vt_name in <% $.volume_type_names %>
-      action: cinder.quotas_update tenant_id=<% $.project_id %> volumes_<% vt_name %>=10 gigabytes_<% vt_name %>=1000 snapshots_<% vt_name %>=10
-      on-success:
-        - set_fim_properties: <% not ('Personal' in $.name)  %>
-        - set_personal_project_properties: <% 'Personal' in $.name  %>
+      get_owner_role_id:
+        action: keystone.roles_find
+        input:
+          name: 'owner'
+        publish:
+          owner_role_id: <% task(get_owner_role_id).result.id %>
+        on-success:
+          - set_project_owner
 
-    set_fim_properties:
-      action: keystone.projects_update project=<% $.project_id %> fim-lock=true fim-skip=true
+      get_member_role_id:
+        action: keystone.roles_find
+        input:
+          name: 'Member'
+        publish:
+          member_role_id: <% task(get_member_role_id).result.id %>
+        on-success:
+          - set_project_member
 
-    set_personal_project_properties:
-      action: keystone.projects_update project=<% $.project_id %> accounting-group='personal' type='personal'
+    set_project_owner:
+        action: keystone.roles_grant
+        input:
+          role: <% $.owner_role_id %>
+          user: <% $.owner_id %>
+          project: <% $.project_id %>
+
+      set_project_member:
+        action: keystone.roles_grant
+        input:
+          role: <% $.member_role_id %>
+          user: <% $.owner_id %>
+          project: <% $.project_id %>
+
+      set_fim_properties:
+        action: keystone.projects_update project=<% $.project_id %> fim-lock=true fim-skip=true
+
+      set_personal_project_properties:
+        action: keystone.projects_update project=<% $.project_id %> accounting-group='personal' type='personal'
+
+  project_create_compute:
+    description: Initializes a project on the compute service sets default quotas
+    type: direct
+    input:
+      - id
+    tasks:
+      update_compute_quota:
+        action: nova.quotas_update
+        input:
+          tenant_id: <% $.id %>
+          cores: 10
+          ram: 20480
+          instances: 5
+
+  project_create_blockstorage:
+    description: Initializes a project on the blockstorage service sets default quotas
+    type: direct
+    input:
+      - id
+    tasks:
+      update_volume_quota:
+        action: cinder.quotas_update
+        input:
+          tenant_id: <% $.id %>
+          volumes: 10
+          gigabytes: 100
+          snapshots: 10
+        on-success:
+          - get_volume_types
+
+      get_volume_types:
+        action: cinder.volume_types_list
+        publish:
+          volume_type_names: <% task(get_volume_types).result.name %>
+        on-success:
+          - update_volume_quota_types
+
+      update_volume_quota_types:
+        with-items: vt_name in <% $.volume_type_names %>
+        action: cinder.quotas_update tenant_id=<% $.id %> volumes_<% vt_name %>=10 gigabytes_<% vt_name %>=1000 snapshots_<% vt_name %>=10
+
+  project_create_image:
+    description: Initializes a project on the image service sets default quotas
+    type: direct
+    input:
+      - id
+    tasks:
+      update_image_quota:
+        action: std.echo output='skip'
+
+  project_create_fileshare:
+    description: Initializes a project on the fileshare service sets default quotas
+    type: direct
+    input:
+      - id
+    tasks:
+      update_image_quota:
+        action: std.echo output='skip'
+
+  project_create_orcherstration:
+    description: Initializes a project on the orcherstration service sets default quotas
+    type: direct
+    input:
+      - id
+    tasks:
+      update_image_quota:
+        action: std.echo output='skip'
+
+
+  project_create_network:
+    description: Initializes a project on the network service sets default quotas
+    type: direct
+    input:
+      - id
+    tasks:
+      update_image_quota:
+        action: std.echo output='skip'
+
+  project_create_container_infra:
+    description: Initializes a project on the container infrastructure service sets default quotas
+    type: direct
+    input:
+      - id
+    tasks:
+      update_image_quota:
+        action: std.echo output='skip'

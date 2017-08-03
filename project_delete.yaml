@@ -1,64 +1,197 @@
 ---
 version: '2.0'
 
-project_delete:
-  type: direct
-  input:
-    - id
+name: project_delete
+description: Workbook that contains project_deletion workflows
 
-  tasks:
-    # Checks if the project is locked
-    get_fim_lock:
-      action: keystone.projects_get project=<% $.id %>
-      publish:
-        fim_lock: <% task(get_fim_lock).result.get("fim-lock") %>
-      on-success:
-        - fail: <% $.fim_lock != null and $.fim_lock = true %>
-        - get_all_volumes: <% $.fim_lock = null %>
+workflows:
+  project_delete:
+    type: direct
+    input:
+      - id
+    output:
+      id: <% $.id %>
 
-    # Get all volumes in the project
-    get_all_volumes:
-      action: cinder.volumes_list
-      input:
-        search_opts:
-          all_tenants: true
-          project_id: <% $.id %>
-      publish:
-        volume_ids: <% task(get_all_volumes).result.id %>
-      on-success:
-        - detach_volumes
+    tasks:
+      project_delete_check_identity:
+        workflow: project_delete_check_identity
+        input:
+          - id: <% $.id %>
+        publish:
+          fim_lock: <% task(project_delete_check_identity).result.get("fim-lock") %>
+        on-success:
+          - fail: <% $.fim_lock != null and $.fim_lock = true %>
+          - project_delete_container_infra: <% $.fim_lock = null %>
 
-    # Detach all volumes in the project
-    detach_volumes:
-      with-items: volume_id in <% $.volume_ids %>
-      action: cinder.volumes_detach volume=<% $.volume_id %>
-      on-success:
-        - get_vms
+      project_delete_container_infra:
+        workflow: project_delete_container_infra
+        input:
+          id: <% $.id %>
+        on-success:
+          - project_delete_orcherstration
 
-    # Get all VMs in the project
-    get_vms:
-      action: nova.servers_list
-      input:
-        search_opts:
-          all_tenants: true
-          project_id: <% $.id %>
-      publish:
-        server_ids: <% task(get_vms).result.id %>
-      on-success:
-        - delete_vms
+      project_delete_orcherstration:
+        workflow: project_delete_orcherstration
+        input:
+          id: <% $.id %>
+        on-success:
+          - project_delete_compute
 
-    # Delete the VMs
-    delete_vms:
-      with-items: server_id in <% $.server_ids %>
-      action: nova.servers_delete server=<% $.server_id %>
-      on-success:
-        - delete_volumes
+      project_delete_compute:
+        workflow: project_delete_compute
+        input:
+          id: <% $.id %>
+        on-success:
+          - project_delete_blockstorage
+          - project_delete_fileshare
+          - project_delete_network
 
-    # Delete the volumes
-    delete_volumes:
-      with-items: volume_id in <% $.volume_ids %>
-      action: cinder.volumes_delete volume=<% $.volume_id %>
+      project_delete_blockstorage:
+        workflow: project_delete_blockstorage
+        input:
+          id: <% $.id %>
+        on-success:
+          - project_delete_image
 
-    # Finally, delete the project
-    delete_project:
-      action: keystone.projects_delete project=<% $.id %>
+      project_delete_image:
+        workflow: project_delete_image
+        input:
+          id: <% $.id %>
+        on-success:
+          - project_delete_identity
+
+      project_delete_fileshare:
+        workflow: project_delete_fileshare
+        input:
+          id: <% $.id %>
+        on-success:
+          - project_delete_identity
+
+      project_delete_network:
+        workflow: project_delete_network
+        input:
+          id: <% $.id %>
+        on-success:
+          - project_delete_identity
+
+      project_delete_identity:
+        join: all
+        workflow: project_delete_identity
+        input:
+          - id: <% $.id %>
+
+  project_update_check_identity:
+    workflow: project_update_check_identity
+    input:
+      - id: <% $.id %>
+    output:
+      - fim_skip
+      - current_enabled
+    tasks:
+      retrieve_project:
+        action: keystone.projects_get
+        input:
+          -project: <% $.id %>
+        publish:
+          fim_skip: <% task(retrieve_project).result.get("fim-skip") %>
+          current_enabled: <% task(retrieve_project).result.get("enabled") %>
+
+  project_delete_compute:
+    description: Deletes all resources of a project on the compute service
+    type: direct
+    input:
+      - id
+    tasks:
+      # Get all VMs in the project
+      get_vms:
+        action: nova.servers_list
+        input:
+          search_opts:
+            all_tenants: true
+            project_id: <% $.id %>
+        publish:
+          server_ids: <% task(get_vms).result.id %>
+        on-success:
+          - delete_vms
+      # Delete the VMs
+      delete_vms:
+        with-items: server_id in <% $.server_ids %>
+          action: nova.servers_delete server=<% $.server_id %>
+
+  project_delete_blockstorage:
+    description: Deletes all resources of a project on the blockstorage service
+    type: direct
+    input:
+      - id
+    tasks:
+      # Get all volumes in the project
+      get_volumes:
+        action: cinder.volumes_list
+        input:
+          search_opts:
+            all_tenants: true
+            project_id: <% $.id %>
+        publish:
+          volume_ids: <% task(get_all_volumes).result.id %>
+        on-success:
+          - delete_volumes
+      # Delete the volumes
+      delete_volumes:
+        with-items: volume_id in <% $.volume_ids %>
+        action: cinder.volumes_delete volume=<% $.volume_id %>
+
+  project_delete_image:
+    description: Deletes all resources of a project on the image service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_action:
+        action: std.echo output='skip'
+
+  project_delete_fileshare:
+    description: Deletes all resources of a project on the fileshare service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_action:
+        action: std.echo output='skip'
+
+  project_delete_orcherstration:
+    description: Deletes all resources of a project on the orchestration service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_action:
+        action: std.echo output='skip'
+
+  project_delete_network:
+    description: Deletes all resources of a project on the network service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_action:
+        action: std.echo output='skip'
+
+  project_delete_container_infra:
+    description: Deletes all resources of a project on the container infrastructure service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_action:
+        action: std.echo output='skip'
+
+  project_delete_identity:
+    description: Deletes all resources of a project on the identity service
+    type: direct
+    input:
+      - id
+    tasks:
+      delete_project:
+        action: keystone.projects_delete
+        input:
+          - project: <% $.id %>

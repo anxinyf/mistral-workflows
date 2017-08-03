@@ -1,43 +1,232 @@
 ---
 version: '2.0'
 
-project_update:
-  type: direct
-  input:
-    - id
-    - name
-    - description
-    - enabled
-    - owner_name
+name: project_update
+description: Workbook that contains project_creation workflows
 
-  tasks:
+workflows:
+  project_update:
+    type: direct
+    input:
+      - id
+      - name
+      - description
+      - enabled
+      - owner
+    output:
+      id: <% $.id %>
+      name: <% $.name %>
+      description: <% $.description %>
+      enabled: <% $.enabled %>
+      owner: <% $.owner %>
 
-    check_stop_instances:
-      action: keystone.projects_get project=<% $.id %>
-      publish:
-        fim_skip: <% task(check_stop_instances).result.get("fim-skip") %>
-        current_enabled: <% task(check_stop_instances).result.get("enabled") %>
-      on-success:
-        # If project metadata has fim-skip=True, the project instances will be not stoped.
-        - update: <% $.fim_skip = null or $.fim_skip = "True" or $.current_enabled = false or $.enabled = true %>
-        - stop_instances_get_vms: <% $.fim_skip = "False" and $.current_enabled = true and $.enabled = false %>
+    tasks:
+      project_update_check_identity:
+        workflow: project_update_check_identity
+        input:
+          - id: <% $.id %>
+        publish:
+          fim_skip: <% task(project_update_identity_check).result.get("fim-skip") %>
+          current_enabled: <% task(project_update_identity_check).result.get("enabled") %>
+        on-success:
+          # If project metadata has fim-skip=True, the project resources will not be affected
+          - project_update_identity: <% $.fim_skip = null or $.fim_skip = "True" or $.current_enabled = false or $.enabled = true %>
+          - project_update_container_infra: <% $.fim_skip = "False" and $.current_enabled = true and $.enabled = false %>
 
-    stop_instances_get_vms:
-      action: nova.servers_list
-      input:
-        search_opts:
-          all_tenants: true
-          project_id: <% $.id %>
-      publish:
-        server_ids: <% task(stop_instances_get_vms).result.id %>
-      on-success:
-        - stop_instances
+      project_update_container_infra:
+        workflow: project_update_container_infra
+        input:
+          id: <% $.id %>
+        on-success:
+          - project_update_orcherstration
 
-    stop_instances:
-      with-items: server_id in <% $.server_ids %>
-      action: nova.servers_stop server=<% $.server_id %>
-      on-complete:
-        - update
+      project_update_orcherstration:
+        workflow: project_update_orchestration
+        input:
+          id: <% $.id %>
+        on-success:
+          - project_update_compute
 
-    update:
-      action: keystone.projects_update project=<% $.id %> name=<% $.name  %> description=<% $.description  %> enabled=<% $.enabled %>
+      project_update_compute:
+        workflow: project_update_compute
+        input:
+          id: <% $.id %>
+        on-success:
+          - project_update_blockstorage
+          - project_update_fileshare
+          - project_update_network
+
+      project_update_blockstorage:
+        workflow: project_update_blockstorage
+        input:
+          id: <% $.id %>
+        on-success:
+          - project_update_image
+
+      project_update_image:
+        workflow: project_update_image
+        input:
+          id: <% $.id %>
+        on-success:
+          - project_update_identity
+
+      project_update_fileshare:
+        workflow: project_update_fileshare
+        input:
+          id: <% $.id %>
+        on-success:
+          - project_update_identity
+
+      project_update_network:
+        workflow: project_update_network
+        input:
+          id: <% $.id %>
+        on-success:
+          - project_update_identity
+
+      project_update_identity:
+        join: all
+        workflow: project_update_identity
+        input:
+          - id: <% $.id %>
+          - name: <% $.name %>
+          - description: <% $.description %>
+          - enabled: <% $.enabled %>
+          - owner: <% $.owner %>
+
+  project_update_check_identity:
+    workflow: project_update_check_identity
+    input:
+      - id: <% $.id %>
+    output:
+      - fim_skip
+      - current_enabled
+    tasks:
+      retrieve_project:
+        action: keystone.projects_get
+        input:
+          -project: <% $.id %>
+        publish:
+          fim_skip: <% task(retrieve_project).result.get("fim-skip") %>
+          current_enabled: <% task(retrieve_project).result.get("enabled") %>
+
+  project_update_compute:
+    description: Updates the status of resources of a project on the compute service
+    type: direct
+    input:
+      - id
+    tasks:
+      stop_instances_get_vms:
+        action: nova.servers_list
+        input:
+          search_opts:
+            all_tenants: true
+            project_id: <% $.id %>
+        publish:
+          server_ids: <% task(stop_instances_get_vms).result.id %>
+        on-success:
+          - stop_instances
+
+      stop_instances:
+        with-items: server_id in <% $.server_ids %>
+        action: nova.servers_stop server=<% $.server_id %>
+
+  project_update_blockstorage:
+    description: Updates the status of resources of a project on the blockstorage service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_action:
+        action: std.echo output='skip'
+
+  project_update_image:
+    description: Updates the status of resources of a project on the image service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_action:
+        action: std.echo output='skip'
+
+  project_update_fileshare:
+    description: Updates the status of resources of a project on the fileshare service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_action:
+        action: std.echo output='skip'
+
+  project_update_orcherstration:
+    description: Updates the status of resources of a project on the orchestration service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_action:
+        action: std.echo output='skip'
+
+  project_update_network:
+    description: Updates the status of resources of a project on the network service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_action:
+        action: std.echo output='skip'
+
+  project_update_container_infra:
+    description: Updates the status of resources of a project on the container infrastructure service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_action:
+        action: std.echo output='skip'
+
+  project_update_identity:
+    description: Updates the status of resources of a project on the identity service
+    type: direct
+    input:
+      - id
+      - name
+      - description
+      - enabled
+      - owner
+    tasks:
+      update_keystone_data:
+        action: keystone.projects_update
+        input:
+         - project: <% $.id %>
+         - name: <% $.name  %>
+         - description: <% $.description  %>
+         - enabled: <% $.enabled %>
+        on-success:
+         - change_keystone_owner
+
+      get_owner_role_id:
+        action: keystone.roles_find
+        input:
+          name: 'owner'
+        publish:
+          owner_role_id: <% task(get_owner_role_id).result.id %>
+        on-success:
+          - get_project_owner
+
+      get_project_owner:
+        action: keystone.roles_grant
+        input:
+          role: <% $.owner_role_id %>
+          project: <% $.id %>
+        publish:
+          owners: <% task(get_project_owner).result %>
+        on-success:
+          - set_project_owner: <% not ($.owner in $.owners)  %>
+
+      set_project_owner:
+        action: keystone.roles_grant
+        input:
+          role: <% $.owner_role_id %>
+          user: <% $.owner_id %>
+          project: <% $._id %>
