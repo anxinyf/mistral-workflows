@@ -24,10 +24,10 @@ workflows:
       check_identity:
         workflow: check_identity
         input:
-          - id: <% $.id %>
+          id: <% $.id %>
         publish:
-          fim_skip: <% task(check_identity).result.get("fim-skip") %>
-          current_enabled: <% task(check_identity).result.get("enabled") %>
+          fim_skip: <% task(check_identity).result.fim_skip %>
+          current_enabled: <% task(check_identity).result.current_enabled %>
         on-success:
           # If project metadata has fim-skip=True, the project resources will not be affected
           - identity: <% $.fim_skip = null or $.fim_skip = "True" or $.current_enabled = false or $.enabled = true %>
@@ -95,20 +95,20 @@ workflows:
         join: all
         workflow: identity
         input:
-          - id: <% $.id %>
-          - name: <% $.name %>
-          - description: <% $.description %>
-          - enabled: <% $.enabled %>
-          - owner: <% $.owner %>
+          id: <% $.id %>
+          name: <% $.name %>
+          description: <% $.description %>
+          enabled: <% $.enabled %>
+          owner: <% $.owner %>
 
   check_identity:
     description: Checks if the project can be updated
     type: direct
     input:
-      - id: <% $.id %>
+      - id
     output:
-      - fim_skip
-      - current_enabled
+      fim_skip: <% $.fim_skip %>
+      current_enabled: <% $.current_enabled %>
     tasks:
       retrieve_project:
         action: keystone.projects_get
@@ -215,12 +215,12 @@ workflows:
       update_keystone_data:
         action: keystone.projects_update
         input:
-         - project: <% $.id %>
-         - name: <% $.name  %>
-         - description: <% $.description  %>
-         - enabled: <% $.enabled %>
+         project: <% $.id %>
+         name: <% $.name  %>
+         description: <% $.description  %>
+         enabled: <% $.enabled %>
         on-success:
-         - change_keystone_owner
+         - get_owner_role_id
 
       get_owner_role_id:
         action: keystone.roles_find
@@ -246,4 +246,4 @@ workflows:
         input:
           role: <% $.owner_role_id %>
           user: <% $.owner_id %>
-          project: <% $._id %>
+          project: <% $.id %>

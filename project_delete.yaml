@@ -9,16 +9,13 @@ workflows:
     type: direct
     input:
       - id
-    output:
-      id: <% $.id %>
-
     tasks:
       check_identity:
         workflow: check_identity
         input:
-          - id: <% $.id %>
+          id: <% $.id %>
         publish:
-          fim_lock: <% task(check_identity).result.get("fim-lock") %>
+          fim_lock: <% task(check_identity).result.fim_lock %>
         on-success:
           - fail: <% $.fim_lock != null and $.fim_lock = true %>
           - workengine: <% $.fim_lock = null %>
@@ -85,24 +82,22 @@ workflows:
         join: all
         workflow: identity
         input:
-          - id: <% $.id %>
+          id: <% $.id %>
 
   check_identity:
     description: Checks if the project can be deleted
     type: direct
     input:
-      - id: <% $.id %>
+      - id
     output:
-      - fim_skip
-      - current_enabled
+      fim_lock: <% $.fim_lock %>
     tasks:
       retrieve_project:
         action: keystone.projects_get
         input:
-          -project: <% $.id %>
+          project: <% $.id %>
         publish:
-          fim_skip: <% task(retrieve_project).result.get("fim-skip") %>
-          current_enabled: <% task(retrieve_project).result.get("enabled") %>
+          fim_lock: <% task(retrieve_project).result.get("fim-lock") %>
 
   compute:
     description: Deletes all resources of a project on the compute service
@@ -124,7 +119,7 @@ workflows:
       # Delete the VMs
       delete_vms:
         with-items: server_id in <% $.server_ids %>
-          action: nova.servers_delete server=<% $.server_id %>
+        action: nova.servers_delete server=<% $.server_id %>
 
   blockstorage:
     description: Deletes all resources of a project on the blockstorage service
@@ -211,4 +206,4 @@ workflows:
       delete_project:
         action: keystone.projects_delete
         input:
-          - project: <% $.id %>
+          project: <% $.id %>
