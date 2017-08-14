@@ -1,0 +1,170 @@
+---
+version: '2.0'
+
+name: service_disable
+description: Workbook that contains the disable operations on services on a project
+
+workflows:
+  init:
+    type: direct
+    input:
+      - id
+
+    tasks:
+      project_exists:
+        action: keystone.projects_get project=<% $.id %>
+        publish:
+          project_id: <% task(project_exists).result.id %>
+        on-success:
+          - workengine
+          - container_infra
+      
+      workengine:
+        workflow: workengine
+        input:
+          id: <% $.id %>
+
+      container_infra:
+        workflow: container_infra
+        input:
+          id: <% $.id %>
+        on-success:
+          - orchestration
+          - key_manager
+
+      key_manager:
+        workflow: key_manager
+        input:
+          id: <% $.id %>
+        on-success:
+          - compute
+
+      orchestration:
+        workflow: orchestration
+        input:
+          id: <% $.id %>
+        on-success:
+          - compute
+
+      compute:
+        join: all
+        workflow: compute
+        input:
+          id: <% $.id %>
+        on-success:
+          - blockstorage
+          - fileshare
+          - network
+
+      blockstorage:
+        workflow: blockstorage
+        input:
+          id: <% $.id %>
+
+      image:
+        workflow: image
+        input:
+          id: <% $.id %>
+
+      fileshare:
+        workflow: fileshare
+        input:
+          id: <% $.id %>
+
+      network:
+        workflow: network
+        input:
+          id: <% $.id %>
+
+  compute:
+    description: Updates the status of resources of a project on the compute service
+    type: direct
+    input:
+      - id
+    tasks:
+      stop_instances_get_vms:
+        action: nova.servers_list
+        input:
+          search_opts:
+            all_tenants: true
+            project_id: <% $.id %>
+        publish:
+          server_ids: <% task(stop_instances_get_vms).result.id %>
+        on-success:
+          - stop_instances
+
+      stop_instances:
+        with-items: server_id in <% $.server_ids %>
+        action: nova.servers_stop server=<% $.server_id %>
+
+  blockstorage:
+    description: Updates the status of resources of a project on the blockstorage service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
+        action: std.noop
+
+  image:
+    description: Updates the status of resources of a project on the image service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
+        action: std.noop
+
+  fileshare:
+    description: Updates the status of resources of a project on the fileshare service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
+        action: std.noop
+
+  orchestration:
+    description: Updates the status of resources of a project on the orchestration service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
+        action: std.noop
+
+  key_manager:
+    description: Updates the status of resources of a project on the key_manager service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
+        action: std.noop
+
+  network:
+    description: Updates the status of resources of a project on the network service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
+        action: std.echo output='skip'
+
+  container_infra:
+    description: Updates the status of resources of a project on the container infrastructure service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
+        action: std.echo output='skip'
+
+  workengine:
+    description: Updates the status of resources of a project on the workflow service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
+        action: std.echo output='skip'

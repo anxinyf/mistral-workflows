@@ -1,0 +1,181 @@
+---
+version: '2.0'
+
+name: service_initialize
+description: Workflow that initializes a project on the different services
+
+workflows:
+  base:
+    description: Initializes the base services of a Project
+    type: direct
+    input:
+      - id
+
+    tasks:
+      project_exists:
+        action: keystone.projects_get project=<% $.id %>
+        publish:
+          project_id: <% task(project_exists).result.id %>
+        on-success:
+          - compute
+          - blockstorage
+          - image
+          - orchestration
+          - key_manager
+          - network
+          - container_infra
+
+      compute:
+        workflow: compute
+        input:
+          id: <% $.project_id %>
+
+      blockstorage:
+        workflow: blockstorage
+        input:
+          id: <% $.project_id %>
+
+      image:
+        workflow: image
+        input:
+          id: <% $.project_id %>
+
+      orchestration:
+        workflow: orchestration
+        input:
+          id: <% $.project_id %>
+
+      key_manager:
+        workflow: key_manager
+        input:
+          id: <% $.project_id %>
+
+      network:
+        workflow: network
+        input:
+          id: <% $.project_id %>
+
+      container_infra:
+        workflow: container_infra
+        input:
+          id: <% $.project_id %>
+
+  compute:
+    description: Initializes a project on the compute service and sets default quotas
+    type: direct
+    input:
+      - id
+    tasks:
+      update_compute_quota:
+        action: nova.quotas_update
+        input:
+          tenant_id: <% $.id %>
+          cores: 10
+          ram: 20480
+          instances: 5
+
+  blockstorage:
+    description: Initializes a project on the blockstorage service and sets default quotas
+    type: direct
+    input:
+      - id
+    tasks:
+      update_volume_quota:
+        action: cinder.quotas_update
+        input:
+          tenant_id: <% $.id %>
+          volumes: 10
+          gigabytes: 100
+          snapshots: 10
+          backups: 0
+          backup_gigabytes: 0
+        on-success:
+          - get_volume_types
+
+      get_volume_types:
+        action: cinder.volume_types_list
+        publish:
+          volume_type_names: <% task(get_volume_types).result.name %>
+        on-success:
+          - update_volume_quota_types
+
+      update_volume_quota_types:
+        with-items: vt_name in <% $.volume_type_names %>
+        action: cinder.quotas_update tenant_id=<% $.id %> volumes_<% vt_name %>=10 gigabytes_<% vt_name %>=100 snapshots_<% vt_name %>=5
+        on-sucess:
+          - update_volume_quota_standard
+
+      update_volume_quota_standard:
+        action: cinder.quotas_update tenant_id=<% $.id %> volumes_standard=10 gigabytes_standard=100 snapshots_standard=5
+
+  image:
+    description: Initializes a project on the image service and sets default quotas
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
+        action: std.noop
+
+  fileshare:
+    description: Initializes a project on the fileshare service and sets default quotas
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
+        action: std.noop
+
+  orchestration:
+    description: Initializes a project on the orchestration service and sets default quotas
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
+        action: std.noop
+
+  key_manager:
+    description: Initializes a project on the key_manager service and sets default quotas
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
+        action: std.noop
+
+  network:
+    description: Initializes a project on the network service and sets default quotas
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
+        action: std.noop
+
+  container_infra:
+    description: Initializes a project on the container infrastructure service and sets default quotas
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
+        action: std.noop
+
+  fileshare:
+    description: Initializes a project on the fileshare service and sets default quotas
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
+        action: std.noop
+
+  workengine:
+    description: Initializes a project on the workflow service and sets default quotas
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
+        action: std.noop

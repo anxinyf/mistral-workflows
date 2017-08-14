@@ -31,68 +31,16 @@ workflows:
         on-success:
           # If project metadata has fim-skip=True, the project resources will not be affected
           - identity: <% $.fim_skip = null or $.fim_skip = "True" or $.current_enabled = false or $.enabled = true %>
-          - workengine: <% $.fim_skip = "False" and $.current_enabled = true and $.enabled = false %>
+          - service_disable: <% $.fim_skip = "False" and $.current_enabled = true and $.enabled = false %>
       
-      workengine:
-        workflow: workengine
-        input:
-          id: <% $.id %>
-        on-success:
-          - container_infra
-
-      container_infra:
-        workflow: container_infra
-        input:
-          id: <% $.id %>
-        on-success:
-          - orchestration
-
-      orchestration:
-        workflow: orchestration
-        input:
-          id: <% $.id %>
-        on-success:
-          - compute
-
-      compute:
-        workflow: compute
-        input:
-          id: <% $.id %>
-        on-success:
-          - blockstorage
-          - fileshare
-          - network
-
-      blockstorage:
-        workflow: blockstorage
-        input:
-          id: <% $.id %>
-        on-success:
-          - image
-
-      image:
-        workflow: image
-        input:
-          id: <% $.id %>
-        on-success:
-          - identity
-
-      fileshare:
-        workflow: fileshare
-        input:
-          id: <% $.id %>
-        on-success:
-          - identity
-
-      network:
-        workflow: network
+      service_disable:
+        workflow: service_disable.init
         input:
           id: <% $.id %>
         on-success:
           - identity
 
       identity:
-        join: all
         workflow: identity
         input:
           id: <% $.id %>
@@ -117,90 +65,6 @@ workflows:
         publish:
           fim_skip: <% task(retrieve_project).result.get("fim-skip") %>
           current_enabled: <% task(retrieve_project).result.get("enabled") %>
-
-  compute:
-    description: Updates the status of resources of a project on the compute service
-    type: direct
-    input:
-      - id
-    tasks:
-      stop_instances_get_vms:
-        action: nova.servers_list
-        input:
-          search_opts:
-            all_tenants: true
-            project_id: <% $.id %>
-        publish:
-          server_ids: <% task(stop_instances_get_vms).result.id %>
-        on-success:
-          - stop_instances
-
-      stop_instances:
-        with-items: server_id in <% $.server_ids %>
-        action: nova.servers_stop server=<% $.server_id %>
-
-  blockstorage:
-    description: Updates the status of resources of a project on the blockstorage service
-    type: direct
-    input:
-      - id
-    tasks:
-      empty_task:
-        action: std.echo output='skip'
-
-  image:
-    description: Updates the status of resources of a project on the image service
-    type: direct
-    input:
-      - id
-    tasks:
-      empty_task:
-        action: std.echo output='skip'
-
-  fileshare:
-    description: Updates the status of resources of a project on the fileshare service
-    type: direct
-    input:
-      - id
-    tasks:
-      empty_task:
-        action: std.echo output='skip'
-
-  orchestration:
-    description: Updates the status of resources of a project on the orchestration service
-    type: direct
-    input:
-      - id
-    tasks:
-      empty_task:
-        action: std.echo output='skip'
-
-  network:
-    description: Updates the status of resources of a project on the network service
-    type: direct
-    input:
-      - id
-    tasks:
-      empty_task:
-        action: std.echo output='skip'
-
-  container_infra:
-    description: Updates the status of resources of a project on the container infrastructure service
-    type: direct
-    input:
-      - id
-    tasks:
-      empty_task:
-        action: std.echo output='skip'
-
-  workengine:
-    description: Updates the status of resources of a project on the workflow service
-    type: direct
-    input:
-      - id
-    tasks:
-      empty_task:
-        action: std.echo output='skip'
 
   identity:
     description: Updates the status of resources of a project on the identity service
@@ -239,7 +103,17 @@ workflows:
         publish:
           owners: <% task(get_project_owner).result %>
         on-success:
-          - set_project_owner: <% not ($.owner in $.owners)  %>
+          - remove_previous_owner: <% not ($.owner in $.owners)  %>
+
+      remove_previous_owner:
+        with-items: old_owner_id in <% $.owners %>
+        action: keystone.roles_revoke
+        input:
+          role: <% $.owner_role_id %>
+          user: <% $.old_owner_id %>
+          project: <% $.id %>
+        on-success:
+          - set_project_owner
 
       set_project_owner:
         action: keystone.roles_grant
