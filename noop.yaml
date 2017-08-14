@@ -1,0 +1,15 @@
+---
+version: '2.0'
+
+noop:
+  type: direct
+  description: 'Do nothing'
+  input:
+    - id
+
+  output:
+    id: <% $.id %>
+
+  tasks:
+    no_operation:
+      action: std.noop
