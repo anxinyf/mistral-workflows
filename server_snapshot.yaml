@@ -5,15 +5,90 @@ server_snapshot:
   type: direct
   description: 'Create a snapshot from a server'
   input:
-    - server_id
-    - snapshot_name
-
-  output:
-    snapshot_id: <% $.snapshot_id %>
+    - id
+    - max_snapshots: 0
+    - wait: false
 
   tasks:
-    snapshot_vm:
-      action: nova.servers_create_image server=<% $.server_id %> image_name=<% $.snapshot_name %>
+    check_server:
+      action: nova.servers_get server=<% $.id %>
       publish:
-        snapshot_id: <% task(snapshot_vm).result.id %>
+        server: <% task(check_server).result %>
+        volume_ids: <% task(check_server).result.get('os-extended-volumes:volumes_attached').id %>
+      on-success:
+        - instance_snapshot: <% task(check_server).result.image %>
+        - identify_volumes: <% not task(check_server).result.image %>
 
+    identify_volumes:
+      with-items: volume_id in <% $.volume_ids %>
+      action: cinder.volumes_get volume_id=<% $.volume_id %>
+      publish:
+        volume_id: <% task(identify_volumes).result.first().get("attachments").where($.device = '/dev/vda').volume_id.first() %>
+      on-success:
+        - volume_snapshot: <% task(identify_volumes).result.first().get("attachments").where($.device = '/dev/vda').volume_id %>
+
+    instance_snapshot:
+      action: nova.servers_create_image server=<% $.server %> image_name=<% $.server.name+"_snapshot_"+now().format("%Y%m%d%H%M") %>
+      publish:
+        snapshot_id: <% task(instance_snapshot).result
+      on-success:
+        - wait_for_instance_snapshot: <% $.wait %>
+        - check_number_of_images: <% not $.wait %>
+
+    wait_for_instance_snapshot:
+      action: nova.images_find id=<% $.snapshot_id %> status='ACTIVE'
+      policies:
+        retry:
+          delay: 10
+          count: 180
+      on-success:
+        - check_number_of_images
+
+    check_number_of_images:
+      action: glance.images_list
+      publish:
+        images: <% task(check_number_of_images).result.where($.visibility='private').where(regex($.server.name+"_snapshot_*").matches($.name)).orderBy($.updated_at) %>
+      on-success:
+        - cleanup_images: <% $.max_snapshots > 0 and task(check_number_of_images).result.where($.visibility='private').where(regex($.server.name+"_snapshot_"+"*").matches($.name)).count() > $.max_snapshots %>
+        - end_action: <% $.max_snapshots <= 0 or task(check_number_of_images).result.where($.visibility='private').where(regex($.server.name+"_snapshot_"+"*").matches($.name)).count() <= $.max_snapshots %>
+        
+    cleanup_images:
+      with-items: image_id in <% $.images.take($.images.len() - $.max_snapshots) %>
+      action: glance.image_delete image_id=<% $.image_id%>
+      on-success:
+        - end_action
+
+    volume_snapshot:
+      action: std.noop
+      #action: cinder.volume_snapshots_create volume_id=<% $.volume_id %> name=<% $.server.name+"_snapshot_"+now().format("%Y%m%d%H%M") %>
+      publish:
+        snapshot_id: <% task(instance_snapshot).result
+      on-success:
+        - wait_for_volume_snapshot: <% $.wait %>
+        - check_number_of_volume_snapshots: <% not $.wait %>
+
+    wait_for_volume_snapshot:
+      action: cinder.volume_snapshots_find id=<% $.snapshot_id %> status='available'
+      policies:
+        retry:
+          delay: 5
+          count: 40
+      on-success:
+        - check_number_of_volume_snapshots
+
+    check_number_of_volume_snapshots:
+      action: cinder.volume_snapshots_list
+      publish:
+        snapshots: <% task(check_number_of_volume_snapshots).result.where($.status='available').where(regex($.server.name+"_snapshot_*").matches($.name)).orderBy($.updated_at) %>
+      on-success:
+        - cleanup_volume_snapshots: <% $.max_snapshots > 0 and task(check_number_of_volume_snapshots).result.where($.status='available').where(regex($.server.name+"_snapshot_"+"*").matches($.name)).count() > $.max_snapshots %>
+        - end_action: <% $.max_snapshots <= 0 or task(check_number_of_volume_snapshots).result.where($.status='available').where(regex($.server.name+"_snapshot_"+"*").matches($.name)).count() <= $.max_snapshots %>
+        
+    cleanup_volume_snapshots:
+      with-items: s_id in <% $.snapshots.take($.snapshots.len() - $.max_snapshots) %>
+      action: cinder.volume_snapshots_delete snapshot=<% $.s_id %>
+      on-success:
+        - end_action
+
+    end_action:
+      action: std.noop
