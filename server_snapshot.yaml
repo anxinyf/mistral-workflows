@@ -5,14 +5,23 @@ server_snapshot:
   type: direct
   description: 'Create a snapshot from a server'
   input:
-    - id
+    - instance
     - pattern: "{0}_snapshot_{1}"
     - max_snapshots: 0
     - wait: false
 
   tasks:
+    check_server_by_name:
+      action: nova.servers_find name=<% $.instance %>
+      publish:
+       id: <% task(check_server_by_name).result.id %>
+      on-success:
+        check_server
+      on-error:
+        check_server
+
     check_server:
-      action: nova.servers_get server=<% $.id %>
+      action: nova.servers_find id=<% coalesce($.id,$.instance) %>
       publish:
         server: <% dict(id => task(check_server).result.id, name => task(check_server).result.name) %>
         snapshot_name:  <% $.pattern.format(task(check_server).result.name, now().format("%Y%m%d%H%M")) %>
@@ -92,3 +101,4 @@ server_snapshot:
 
     end_action:
       action: std.noop
+
