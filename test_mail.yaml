@@ -1,0 +1,25 @@
+---
+version: '2.0'
+
+test_mail:
+  type: direct
+  description: 'Send a test mail'
+  input:
+    - to
+    - subject: 'Hello from Mistral :)'
+    - body: 'Test'
+    - from: 'svcmistral@cern.ch'
+    - smtp_server: 'cernmx.cern.ch'
+
+  tasks:
+    send_email_task:
+      action: std.email
+      input:
+        to_addrs: <% $.to %>
+        subject: <% $.subject %>
+        body: |
+          <% $.body %>
+          Cheers! (:_:)
+          -- Thanks, Cloud Infrastructure Team.
+        from_addr:  <% $.from %>
+        smtp_server: <% $.smtp_server %>
