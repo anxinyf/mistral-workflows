@@ -1,0 +1,26 @@
+---
+version: '2.0'
+
+test:
+  type: direct
+  description: 'Test cronjobs'
+  input:
+    - instance
+
+  output:
+    id: <% $.id %>
+
+  tasks:
+    check_server_by_name:
+      action: nova.servers_find name=<% $.instance %>
+      publish:
+        instance: <% task(check_server_by_name).result.id %>
+      on-success:
+        check_server
+      on-error:
+        check_server
+
+    check_server:
+      action: nova.servers_find id=<% $.instance %>
+      publish:
+        id: <% task(check_server).result.id %>
