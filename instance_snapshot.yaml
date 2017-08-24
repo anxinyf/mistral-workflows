@@ -3,16 +3,24 @@ version: '2.0'
 
 instance_snapshot:
   type: direct
-  description: 'Create a snapshot from a server'
+  description: |
+      This workflow creates a snapshot of an instance.
+      If the instance is boot from image, the snapshot will be stored in Glance.
+      If it is not, the bootable volume will be stored in Cinder.
+      It does as well a cleanup of the previous created snapshots and can stop the
+      server for consistent snapshots.
   input:
     - instance
     - pattern: "{0}_snapshot_{1}"
     - max_snapshots: 0
     - wait: false
     - instance_stop: false
+    - to_addr_success: None
+    - to_addr_error: None
 
   tasks:
     check_server_by_name:
+      description: 'Checks if there is an instance with the name specified as parameter'
       action: nova.servers_find name=<% $.instance %>
       publish:
         instance: <% task(check_server_by_name).result.id %>
@@ -22,6 +30,7 @@ instance_snapshot:
         check_server
 
     check_server:
+      description: 'Retrieves information about the server and identifies if is a boot from image or boot from volume instance'
       action: nova.servers_find id=<% $.instance %>
       publish:
         server: <% dict(id => task(check_server).result.id, name => task(check_server).result.name, status => task(check_server).result.status) %>
@@ -35,6 +44,7 @@ instance_snapshot:
         - error_task
 
     identify_volumes:
+      description: 'Retrieves the bootable volume (mounted on /dev/vda)'
       with-items: volume_id in <% $.volume_ids %>
       action: cinder.volumes_get volume_id=<% $.volume_id %>
       publish:
@@ -45,6 +55,7 @@ instance_snapshot:
         - error_task
 
     instance_snapshot:
+      description: 'Creates an snapshot of the instance'
       action: nova.servers_create_image server=<% task(check_server).published.server.id %> image_name=<% $.snapshot_name %>
       publish:
         i_snap_id: <% task(instance_snapshot).result %>
@@ -55,6 +66,7 @@ instance_snapshot:
         - error_task
 
     wait_for_instance_snapshot:
+      description: 'Waits until the snapshot is flagged as active'
       action: nova.images_find id=<% $.i_snap_id %> status='ACTIVE'
       retry:
         delay: 10
@@ -65,6 +77,7 @@ instance_snapshot:
         - error_task
 
     check_number_of_images:
+      description: 'Checks how many snapshots have been taken already'
       action: glance.images_list
       publish:
         images: <% task(check_number_of_images).result.where($.visibility='private').where(regex(task(check_server).published.snapshot_regex).matches($.name)).orderBy($.updated_at).id %>
@@ -75,6 +88,7 @@ instance_snapshot:
         - error_task
         
     cleanup_images:
+      description: 'Deletes older snapshots if max_snapshots has been reached'
       with-items: image_id in <% $.images.take($.images.len() - $.max_snapshots) %>
       action: glance.image_delete image_id=<% $.image_id%>
       on-success:
@@ -83,6 +97,7 @@ instance_snapshot:
         - error_task
 
     check_server_for_stop:
+      description: 'Checks if the instance needs to be stopped'
       action: std.noop
       on-success:
         - stop_instance: <% $.instance_stop and task(check_server).published.server.status = 'ACTIVE' %>
@@ -91,6 +106,7 @@ instance_snapshot:
         - error_task
 
     stop_instance:
+      description: 'Stops the instance for consistency'
       action: nova.servers_stop server=<% $.instance %>
       on-success:
         - wait_for_stop_instance
@@ -98,6 +114,7 @@ instance_snapshot:
         - error_task
 
     wait_for_stop_instance:
+      description: 'Waits until the instance is shutoff to continue'
       action: nova.servers_find id=<% $.instance %> status='SHUTOFF'
       retry:
         delay: 5
@@ -108,6 +125,7 @@ instance_snapshot:
         - error_task
 
     volume_snapshot:
+      description: 'Creates a snapshot of the bootable volume'
       action: cinder.volume_snapshots_create volume_id=<% $.volume_id %> name=<% $.snapshot_name %> force=true
       publish:
         v_snap_id: <% task(volume_snapshot).result.id %>
@@ -120,6 +138,7 @@ instance_snapshot:
         - start_instance: <% $.instance_stop and task(check_server).published.server.status = 'ACTIVE' %>
 
     wait_for_volume_snapshot:
+      description: 'Waits until the snapshot has been marked as available'
       action: cinder.volume_snapshots_find id=<% $.v_snap_id %> status='available'
       retry:
         delay: 5
@@ -132,6 +151,7 @@ instance_snapshot:
         - start_instance: <% $.instance_stop and task(check_server).published.server.status = 'ACTIVE' %>
 
     check_number_of_volume_snapshots:
+      description: 'Checks how many snapshots have been taken already'
       action: cinder.volume_snapshots_list
       publish:
         snapshots: <% task(check_number_of_volume_snapshots).result.where($.status='available').where(regex(task(check_server).published.snapshot_regex).matches($.name)).orderBy($.updated_at).id %>
@@ -142,6 +162,7 @@ instance_snapshot:
         - error_task
         
     cleanup_volume_snapshots:
+      description: 'Deletes older snapshots if max_snapshots has been reached'
       with-items: s_id in <% $.snapshots.take($.snapshots.len() - $.max_snapshots) %>
       action: cinder.volume_snapshots_delete snapshot=<% $.s_id %>
       on-success:
@@ -150,12 +171,47 @@ instance_snapshot:
         - error_task
 
     start_instance:
+      description: 'Starts the instance '
       action: nova.servers_start server=<% $.instance %>
 
     success_task:
+      description: 'Checks if a success mail has to be sent to the end user'
       action: std.noop
+      on-success:
+        - send_success_mail:  <% $.to_addr_success %>
 
     error_task:
+      description: 'Checks if an error mail has to be sent to the end user'
       action: std.noop
-      on-complete:
-        fail
+      on-success:
+        - send_error_mail:  <% $.to_addr_error %>
+        - fail
+
+    send_success_mail:
+      description: 'Sends a success mail to the end user'
+      action: std.email
+      input:
+        to_addrs: <% $.to_addr_success %>
+        subject: Instance Snapshot created successfully
+        body: |
+          The snapshot for the "<% $.instance %>"" has been created successfully
+          Result of the execution <% execution().id %> is <% $.result %>
+          Cheers!
+          -- Thanks, Cloud Infrastructure Team.
+        from_addr:  'noreply@cern.ch'
+        smtp_server: 'cernmx.cern.ch'
+
+    send_error_mail:
+      description: 'Sends an error mail to the end user'
+      action: std.email
+      input:
+        to_addrs: <% $.to_addr_success %>
+        subject: Instance Snapshot has failed
+        body: |
+          The snapshot for the "<% $.instance %>"" has failed
+          Please check in the execution logs of the execution <% execution().id %>
+          
+          Cheers!
+          -- Thanks, Cloud Infrastructure Team.
+        from_addr:  'noreply@cern.ch'
+        smtp_server: 'cernmx.cern.ch'
