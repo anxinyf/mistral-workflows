@@ -226,8 +226,8 @@ instance_snapshot:
         to_addrs: <% $.to_addr_success %>
         subject: Instance Snapshot created successfully
         body: |
-          The snapshot for the "<% $.instance %>"" has been created successfully
-          Result of the execution <% execution().id %> is <% $.result %>
+          The snapshot for the "<% $.instance %>"" has been created successfully.
+          You can check the execution logs of the execution <% execution().id %>
           Cheers!
           -- Thanks, Cloud Infrastructure Team.
         from_addr:  'noreply@cern.ch'
