@@ -10,90 +10,109 @@ workflows:
     description: This workflow reacts to an event trigger and prepares the machine expiration policy.
     input:
       - instance_id
-
     tasks:
-      check_instance:
-        description: 'Retrieves information about the instance'
-        action: nova.servers_find id=<% $.instance_id %>
-        publish:
-          instance: <% dict(id => task(check_instance).result.id, expire_at => now() + timespan(days=>90)) %>
-        on-success:
-          - set_instance_metadata
-
-      set_instance_metadata:
+      init:
         description: 'Sets the expire_at metadata in the instance'
         action: nova.servers_set_meta_item
         input: 
-          server: <% task(check_instance).published.instance.id %>
+          server: <% $.instance_id %>
           key: expire_at
-          value: <% task(check_instance).published.instance.expire_at %>
-        on-success:
-          - create_mail_cron
-          - create_expire_cron
+          value: <% now().replace(hour => 0, minute=>0, second=>0, microsecond=>0) + timespan(days=>90) %>
 
-      create_mail_cron:
-        description: 'Creates the cronjobs for the expiration mail campaign'
-        action: mistral.cron_triggers_create
-        input:
-          name: "<% task(check_instance).published.instance.id %>_expire_mail"
-          workflow_identifier: instance_expiration.mail_job
-          workflow_input: {'instance_id':'<% task(check_instance).published.instance.id %>'}
-          pattern: "0 0 * * *"
-          first_time: <% (datetime(task(check_instance).published.instance.expire_at) - timespan(days=>15)).format("%Y-%m-%d %H:%M")%>
-          count: 14
-
-      create_expire_cron:
-        description: 'Creates the cronjobs for the expiration of the instance'
-        action: mistral.cron_triggers_create
-        input:
-          name: "<% task(check_instance).published.instance.id %>_expire_job"
-          workflow_identifier: instance_expiration.expire_job
-          workflow_input: {'instance_id':'<% task(check_instance).published.instance.id %>'}
-          pattern: "0 0 * * *"
-          first_time: <% datetime(task(check_instance).published.instance.expire_at).format("%Y-%m-%d %H:%M") %>
-          count: 1
-
-  delete_event_trigger:
+  create_daily_expiration_job:
     type: direct
-    description: This workflow reacts to an event trigger and cleans up the machine expiration policy.
-    input:
-      - instance_id
-
+    description: This workflow reacts to an event trigger and prepares the project expiration policy.
     tasks:
-      delete_mail_cron:
-        description: 'Deletes the cronjobs for the expiration mail campaign'
-        action: mistral.cron_triggers_delete
+      create_mail_cron:
+        description: 'Creates the cronjobs for the expiration job'
+        action: mistral.cron_triggers_create
         input:
-          name: "<% $.instance_id %>_expire_mail"
+          name: "daily_project_expiration"
+          workflow_identifier: instance_expiration.daily_project_expiration
+          workflow_input: {}
+          pattern: "0 0 * * *"
 
-      delete_expire_cron:
-        description: 'Deletes the cronjobs for the expiration mail campaign'
-        action: mistral.cron_triggers_delete
-        input:
-          name: "<% $.instance_id %>_expire_job"
+  daily_project_expiration:
+    type: direct
+    description: This workflow checks the expiration of machines and reacts accordingly.
+    tasks:
+      retrieve_all_instances:
+        description: 'Gets all the instances in the project with their expiration dates'
+        action: nova.servers_list
+        publish:
+          instances: <% task(retrieve_all_instances).result.select(dict(id => $.id, name => $.name, expire_at => $.metadata.expire_at, user_id => $.user_id)) %>
+        on-success:
+          - launch_instance_expirations
+  
+      launch_instance_expirations:
+        description: 'Reviews the expiration dates of the instances'
+        with-items: instance in <% $.instances %>
+        workflow: instance_expiration.daily_instance_expiration instance=<% $.instance %>
 
+  daily_instance_expiration:
+    type: direct
+    description: This workflow checks the expiration of machines and reacts accordingly.
+    input:
+      - instance
+    tasks:
+      init:
+        description: 'Initializes de variables used in the workflow'
+        action: std.noop
+        publish:
+          today_date: <% now().replace(hour => 0, minute=>0, second=>0, microsecond=>0) %>
+          max_expire_date: <% now().replace(hour => 0, minute=>0, second=>0, microsecond=>0) + timespan(days=>90) %>
+          mail_dates: [30, 15, 7, 5, 3, 2, 1]
+        on-success:
+          - check_instance_expiration
+
+      check_instance_expiration:
+        description: 'Checks the instance expiration'
+        action: std.noop
+        on-success:
+          - fix_instance_expiration: <% not $.instance.expire_at  or (datetime($.instance.expire_at) >  datetime(task(init).published.max_expire_date)) %>
+          - process_instance_expiration: <% $.instance.expire_at and (datetime($.instance.expire_at) <= datetime(task(init).published.max_expire_date)) %>
+
+      fix_instance_expiration:
+        description: 'Fixes instance expiration'
+        action: nova.servers_set_meta_item
+        input: 
+          server: <% $.instance.id %>
+          key: expire_at
+          value: <% task(init).published.get('max_expire_date') %>
+        publish:
+          instance: <% dict(id => $instance.id, name => $.instance.name, expire_at => task(init).published.get('max_expire_date'), user_id => $.instance.user_id) %>
+        on-success:
+          - process_instance_expiration
+
+      process_instance_expiration:
+        description: 'Process instance expiration'
+        action: std.noop
+        on-success:
+          - send_expiration_mail: <% (datetime($.instance.expire_at) - datetime(task(init).published.today_date)).days in task(init).published.mail_dates %>
+          - expire_instance: <% datetime(task(init).published.today_date) >= datetime($.instance.expire_at) %>
+
+      send_expiration_mail:
+        description: 'Send warning mail about expiration'
+        workflow: instance_expiration.mail_job instance=<% $.instance %>
+
+      expire_instance:
+        description: 'Process instance expiration'
+        workflow: instance_expiration.expire_job instance=<% $.instance %>
+      
   mail_job:
     type: direct
     description: This workflow sends a reminder to the end user than the machine is going to expire
     input:
-      - instance_id
+      - instance
     tasks:
-      check_instance:
-        description: 'Retrieves information about the instance'
-        action: nova.servers_find id=<% $.instance_id %>
-        publish:
-          instance: <% dict(id => task(check_instance).result.id, name => task(check_instance).result.name, expire_at => task(check_instance).result.metadata.expire_at, user_id => task(check_instance).result.user_id) %>
-        on-success:
-          - send_mail
-
       send_mail:
         description: 'Sends an expiration warning mail to the end user'
         action: std.email
         input:
-          to_addrs: ["<% task(check_instance).published.instance.user_id %>@cern.ch"]
-          subject: The instance <% task(check_instance).published.instance.name %> is going to expire soon
+          to_addrs: ["<% $.instance.user_id %>@cern.ch"]
+          subject: The instance <% $.instance.name %> is going to expire soon
           body: |
-            The instance "<% task(check_instance).published.instance.name %>" is going to expire on "<% task(check_instance).published.instance.expire_at %>"
+            The instance "<% $.instance.name %>" is going to expire on "<% $.instance.expire_at %>"
             Please review if you still need it and extend it if required.
             Cheers!
             -- Thanks, Cloud Infrastructure Team.
@@ -121,68 +140,22 @@ workflows:
           server: <% task(check_instance).published.instance.id %>
           key: expire_at
           value: <% task(check_instance).published.instance.expire_at %>
-        on-success:
-          - delete_mail_cron
-          - delete_expire_cron
-
-      delete_mail_cron:
-        description: 'Deletes the cronjobs for the expiration mail campaign'
-        action: mistral.cron_triggers_delete
-        input:
-          name: "<% task(check_instance).published.instance.id %>_expire_mail"
-        on-success:
-          - create_mail_cron
-
-      delete_expire_cron:
-        description: 'Deletes the cronjobs for the expiration mail campaign'
-        action: mistral.cron_triggers_delete
-        input:
-          name: "<% task(check_instance).published.instance.id %>_expire_job"
-        on-success:
-          - create_expire_cron
-
-      create_mail_cron:
-        description: 'Creates the cronjobs for the expiration mail campaign'
-        action: mistral.cron_triggers_create
-        input:
-          name: "<% task(check_instance).published.instance.id %>_expire_mail"
-          workflow_identifier: instance_expiration.mail_job
-          workflow_input: {'instance_id':'<% task(check_instance).published.instance.id %>'}
-          pattern: "0 0 * * *"
-          first_time: <% (datetime(task(check_instance).published.instance.expire_at) - timespan(days=>15)).format("%Y-%m-%d %H:%M")%>
-          count: 14
-
-      create_expire_cron:
-        description: 'Creates the cronjobs for the expiration of the instance'
-        action: mistral.cron_triggers_create
-        input:
-          name: "<% task(check_instance).published.instance.id %>_expire_job"
-          workflow_identifier: instance_expiration.expire_job
-          workflow_input: {'instance_id':'<% task(check_instance).published.instance.id %>'}
-          pattern: "0 0 * * *"
-          first_time: <% datetime(task(check_instance).published.instance.expire_at).format("%Y-%m-%d %H:%M") %>
-          count: 1
 
   expire_job:
     type: direct
     description: This workflow forces the expiration of the machine
     input:
-      - instance_id
-
+      - instance
     tasks:
       check_instance:
-        description: 'Retrieves information about the instance'
-        action: nova.servers_find id=<% $.instance_id %>
-        publish:
-          instance: <% dict(id => task(check_instance).result.id, name => task(check_instance).result.name, expire_at => task(check_instance).result.metadata.expire_at, user_id => task(check_instance).result.user_id) %>
+        description: 'Expires the instance'
+        action: nova.servers_get server=<% $.instance.id %>
         on-success:
-          - expire_instance
-      
+          - expire_instance: <% task(check_instance).result.status != "SHELVED_OFFLOADED" %>
+
       expire_instance:
         description: 'Expires the instance'
-        action: nova.servers_shelve
-        input:
-          server: <% task(check_instance).published.instance.id %>
+        action: nova.servers_shelve server=<% $.instance.id %>
         on-success:
           - send_mail
 
@@ -190,10 +163,10 @@ workflows:
         description: 'Sends a success mail to the end user'
         action: std.email
         input:
-          to_addrs: ["<% task(check_instance).published.instance.user_id %>@cern.ch"]
-          subject: The instance <% task(check_instance).published.instance.name %> has expired
+          to_addrs: ["<% $.instance.user_id %>@cern.ch"]
+          subject: The instance <% $.instance.name %> has expired
           body: |
-            The instance "<% task(check_instance).published.instance.name %>" has expired on "<% task(check_instance).published.instance.expire_at %>"
+            The instance "<% $.instance.name %>" has expired on "<% $.instance.expire_at %>"
             Cheers!
             -- Thanks, Cloud Infrastructure Team.
           from_addr:  'noreply@cern.ch'
