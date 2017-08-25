@@ -15,8 +15,8 @@ instance_snapshot:
     - max_snapshots: 0
     - wait: false
     - instance_stop: false
-    - to_addr_success: None
-    - to_addr_error: None
+    - to_addr_success: null
+    - to_addr_error: null
 
   tasks:
     check_server_by_name:
@@ -247,3 +247,4 @@ instance_snapshot:
           -- Thanks, Cloud Infrastructure Team.
         from_addr:  'noreply@cern.ch'
         smtp_server: 'cernmx.cern.ch'
+
