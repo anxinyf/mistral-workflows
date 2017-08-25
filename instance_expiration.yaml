@@ -8,14 +8,12 @@ workflows:
   create_event_trigger:
     type: direct
     description: This workflow reacts to an event trigger and prepares the machine expiration policy.
-    input:
-      - instance_id
     tasks:
       init:
         description: 'Sets the expire_at metadata in the instance'
         action: nova.servers_set_meta_item
         input: 
-          server: <% $.instance_id %>
+          server: <% execution().params.event_params.instance_id %>
           key: expire_at
           value: <% now().replace(hour => 0, minute=>0, second=>0, microsecond=>0) + timespan(days=>90) %>
 
