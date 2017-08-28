@@ -223,10 +223,10 @@ instance_snapshot:
       description: 'Sends a success mail to the end user'
       action: std.email
       input:
-        to_addrs: <% $.to_addr_success %>
+        to_addrs: <% $.to_addr_success.split(';') %>
         subject: Instance Snapshot created successfully
         body: |
-          The snapshot for the "<% $.instance %>"" has been created successfully.
+          The snapshot for the "<% task(check_server).published.server.name %>"" has been created successfully.
           You can check the execution logs of the execution <% execution().id %>
           Cheers!
           -- Thanks, Cloud Infrastructure Team.
@@ -237,10 +237,10 @@ instance_snapshot:
       description: 'Sends an error mail to the end user'
       action: std.email
       input:
-        to_addrs: <% $.to_addr_success %>
+        to_addrs: <% $.to_addr_error.split(';') %>
         subject: Instance Snapshot has failed
         body: |
-          The snapshot for the "<% $.instance %>"" has failed
+          The snapshot for the "<% task(check_server).published.server.name %>"" has failed
           Please check in the execution logs of the execution <% execution().id %>
 
           Cheers!
