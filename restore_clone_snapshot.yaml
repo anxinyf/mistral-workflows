@@ -1,0 +1,187 @@
+---
+version: '2.0'
+
+restore_clone_snapshot:
+  type: direct
+  description: |
+      This workflow creates an instance that is a clone of the original machine
+      with the data stored from an snapshot. It will keep the properties in the 
+      original image and also the boot method.
+  input:
+    - instance
+    - date
+    - clone_name
+    - pattern: "{0}_snapshot_{1}"
+    - wait: false
+    - to_addr_success: null
+    - to_addr_error: null
+
+  tasks:
+    check_server_by_name:
+      description: 'Checks if there is an instance with the name specified as parameter'
+      action: nova.servers_find name=<% $.instance %>
+      publish:
+        instance: <% task(check_server_by_name).result.id %>
+      on-success:
+        check_server
+      on-error:
+        check_server
+
+    check_server:
+      description: 'Retrieves information about the server and identifies if is a boot from image or boot from volume instance'
+      action: nova.servers_find id=<% $.instance %>
+      publish:
+        server: <% task(check_server).result %>
+        snapshot_name:  <% $.pattern.format(task(check_server).result.name, $.date.format("%Y%m%d%H%M")) %>
+      on-success:
+        - get_image_snapshot: <% task(check_server).result.image %>
+        - get_volume_snapshot: <% not task(check_server).result.image %>
+      on-error:
+        - error_task
+
+    get_image_snapshot:
+      description: 'Tries to retrieve the snapshot to recover'
+      action: nova.images_find name=<% task(check_server).published.snapshot_name %>
+      publish:
+        snapshot: <% task(get_image_snapshot).result %>
+      on-success:
+        - create_boot_from_image_instance
+      on-error:
+        - error_task
+
+    create_boot_from_image_instance:
+      description: 'Creates a clone volume from the snapshot'
+      action: cinder.volumes_create
+      input:
+        name: <% $.clone_name %>
+        image: <% task(get_image_snapshot).published.snapshot.id %>
+        flavor: <% task(check_server_by_name).published.server.flavor %>
+        meta: <% task(check_server_by_name).published.server.metadata %>
+        availability_zone: <% task(check_server_by_name).published.server.get('OS-EXT-AZ:availability_zone') %>
+      publish:
+        clone_id: <% task(check_server_by_name).result.id %>
+      on-success:
+        - wait_for_instance_creation
+      on-error:
+        - error_task
+
+    get_volume_snapshot:
+      description: 'Tries to retrieve the snapshot to recover'
+      action: cinder.volume_snapshots_find name=<% task(check_server).published.snapshot_name %>
+      publish:
+        snapshot: <% task(get_volume_snapshot).result %>
+      on-success:
+        - get_volume
+      on-error:
+        - error_task
+
+    get_volume:
+      description: 'Gets the volume to retrieve some properties'
+      action: cinder.volumes_get volume_id= <% task(get_volume_snapshot).published.snapshot.volume_id %>
+      publish:
+        volume_type: <% task(get_volume).result.volume_type %>
+      on-success:
+        - create_clone_volume
+      on-error:
+        - error_task
+    
+    create_clone_volume:
+      description: 'Creates a clone volume from the snapshot'
+      action: cinder.volumes_create
+      input:
+        size: <% task(get_volume_snapshot).published.snapshot.size %>
+        snapshot_id: <% task(get_volume_snapshot).published.snapshot.id %>
+        name: <% task(check_server).published.snapshot_name %>
+        volume_type: <% task(get_volume).published.volume_type %>
+      publish:
+        volume_id: <% task(create_clone_volume).result.id %>
+      on-success:
+        - wait_for_volume_creation
+      on-error:
+        - error_task
+
+    wait_for_volume_creation:
+      description: 'Waits until the snapshot has been marked as available'
+      action: cinder.volumes_find id=<% task(create_clone_volume).published.volume_id %> status='available'
+      retry:
+        delay: 5
+        count: 40
+      on-success:
+        - create_boot_from_volume_instance
+      on-error:
+        - error_task
+
+    create_boot_from_volume_instance:
+      description: 'Creates a clone volume from the snapshot'
+      action: cinder.volumes_create
+      input:
+        name: <% $.clone_name %>
+        flavor: <% task(check_server_by_name).published.server.flavor %>
+        meta: <% task(check_server_by_name).published.server.metadata %>
+        availability_zone: <% task(check_server_by_name).published.server.get('OS-EXT-AZ:availability_zone') %>
+        block_device_mapping_v2:
+          boot_index: 1
+          uuid': <% task(create_clone_volume).published.volume_id %>
+          source_type': volume
+          destination_type': volume
+      publish:
+        clone_id: <% task(check_server_by_name).result.id %>
+      on-success:
+        - wait_for_instance_creation: <% $.wait %>
+        - success_task: <% not $.wait %>
+      on-error:
+        - error_task
+
+    wait_for_instance_creation:
+      description: 'Waits until the instance is active to continue'
+      action: nova.servers_find id=<% $.clone_id %> status='ACTIVE'
+      retry:
+        delay: 10
+        count: 180
+      on-success:
+        - success_task
+      on-error:
+        - error_task
+
+    success_task:
+      description: 'Checks if a success mail has to be sent to the end user'
+      action: std.noop
+      on-success:
+        - send_success_mail:  <% $.to_addr_success %>
+
+    error_task:
+      description: 'Checks if an error mail has to be sent to the end user'
+      action: std.noop
+      on-success:
+        - send_error_mail:  <% $.to_addr_error %>
+        - fail
+
+    send_success_mail:
+      description: 'Sends a success mail to the end user'
+      action: std.email
+      input:
+        to_addrs: <% $.to_addr_success.split(';') %>
+        subject: Instance Snapshot created successfully
+        body: |
+          The restore by cloning of the instance "<% task(check_server).published.server.name %>" 
+          onto the instance "<% $.clone_name %>" has executed successfully.
+          You can check the execution logs of the execution <% execution().id %>
+          Cheers!
+          -- Thanks, Cloud Infrastructure Team.
+        from_addr:  'noreply@cern.ch'
+        smtp_server: 'cernmx.cern.ch'
+
+    send_error_mail:
+      description: 'Sends an error mail to the end user'
+      action: std.email
+      input:
+        to_addrs: <% $.to_addr_error.split(';') %>
+        subject: Instance Snapshot has failed
+        body: |
+          The restore by cloning of the instance "<% task(check_server).published.server.name %>" 
+          onto the instance "<% $.clone_name %>" has failed.
+          Please check in the execution logs of the execution <% execution().id %>
+          Cheers!
+          -- Thanks, Cloud Infrastructure Team.
+        from_addr:  'noreply@cern.ch'
+        smtp_server: 'cernmx.cern.ch'
