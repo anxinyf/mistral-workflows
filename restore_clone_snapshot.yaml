@@ -32,7 +32,8 @@ restore_clone_snapshot:
       action: nova.servers_find id=<% $.instance %>
       publish:
         server: <% task(check_server).result %>
-        snapshot_name:  <% $.pattern.format(task(check_server).result.name, $.date.format("%Y%m%d%H%M")) %>
+        snapshot_name:  <% $.pattern.format(task(check_server).result.name, datetime($.date).format("%Y%m%d")) %>
+        snapshot_regex:  <% $.pattern.format(task(check_server).result.name, datetime($.date).format("%Y%m%d")+'*') %>
       on-success:
         - get_image_snapshot: <% task(check_server).result.image %>
         - get_volume_snapshot: <% not task(check_server).result.image %>
@@ -41,9 +42,9 @@ restore_clone_snapshot:
 
     get_image_snapshot:
       description: 'Tries to retrieve the snapshot to recover'
-      action: nova.images_find name=<% task(check_server).published.snapshot_name %>
+      action: glance.images_list
       publish:
-        snapshot: <% task(get_image_snapshot).result %>
+        snapshot: <% task(get_image_snapshot).result.where($.visibility='private').where(regex(task(check_server).published.snapshot_regex).matches($.name)).orderBy($.updated_at).first() %>
       on-success:
         - create_boot_from_image_instance
       on-error:
@@ -51,15 +52,15 @@ restore_clone_snapshot:
 
     create_boot_from_image_instance:
       description: 'Creates a clone volume from the snapshot'
-      action: cinder.volumes_create
+      action: nova.servers_create
       input:
         name: <% $.clone_name %>
         image: <% task(get_image_snapshot).published.snapshot.id %>
-        flavor: <% task(check_server_by_name).published.server.flavor %>
-        meta: <% task(check_server_by_name).published.server.metadata %>
-        availability_zone: <% task(check_server_by_name).published.server.get('OS-EXT-AZ:availability_zone') %>
+        flavor: <% task(check_server).published.server.flavor.id %>
+        meta: <% task(check_server).published.server.metadata %>
+        availability_zone: <% task(check_server).published.server.get('OS-EXT-AZ:availability_zone') %>
       publish:
-        clone_id: <% task(check_server_by_name).result.id %>
+        clone_id: <% task(create_boot_from_image_instance).result.id %>
       on-success:
         - wait_for_instance_creation
       on-error:
@@ -67,9 +68,9 @@ restore_clone_snapshot:
 
     get_volume_snapshot:
       description: 'Tries to retrieve the snapshot to recover'
-      action: cinder.volume_snapshots_find name=<% task(check_server).published.snapshot_name %>
+      action: cinder.volume_snapshots_list
       publish:
-        snapshot: <% task(get_volume_snapshot).result %>
+        snapshot: <% task(get_volume_snapshot).result.where(regex(task(check_server).published.snapshot_regex).matches($.name)).orderBy($.updated_at).first() %>
       on-success:
         - get_volume
       on-error:
@@ -77,7 +78,7 @@ restore_clone_snapshot:
 
     get_volume:
       description: 'Gets the volume to retrieve some properties'
-      action: cinder.volumes_get volume_id= <% task(get_volume_snapshot).published.snapshot.volume_id %>
+      action: cinder.volumes_get volume_id=<% task(get_volume_snapshot).published.snapshot.get('volume_id') %>
       publish:
         volume_type: <% task(get_volume).result.volume_type %>
       on-success:
@@ -113,19 +114,21 @@ restore_clone_snapshot:
 
     create_boot_from_volume_instance:
       description: 'Creates a clone volume from the snapshot'
-      action: cinder.volumes_create
+      action: nova.servers_create
       input:
         name: <% $.clone_name %>
-        flavor: <% task(check_server_by_name).published.server.flavor %>
-        meta: <% task(check_server_by_name).published.server.metadata %>
-        availability_zone: <% task(check_server_by_name).published.server.get('OS-EXT-AZ:availability_zone') %>
+        flavor: <% task(check_server).published.server.flavor.id %>
+        image: null
+        meta: <% task(check_server).published.server.metadata %>
+        availability_zone: <% task(check_server).published.server.get('OS-EXT-AZ:availability_zone') %>
         block_device_mapping_v2:
-          boot_index: 1
-          uuid': <% task(create_clone_volume).published.volume_id %>
-          source_type': volume
-          destination_type': volume
+          - 
+            boot_index: 0
+            uuid: <% task(create_clone_volume).published.volume_id %>
+            source_type: volume
+            destination_type: volume
       publish:
-        clone_id: <% task(check_server_by_name).result.id %>
+        clone_id: <% task(create_boot_from_volume_instance).result.id %>
       on-success:
         - wait_for_instance_creation: <% $.wait %>
         - success_task: <% not $.wait %>
