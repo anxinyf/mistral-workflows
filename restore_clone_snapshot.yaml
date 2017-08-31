@@ -11,22 +11,51 @@ restore_clone_snapshot:
     - instance
     - date
     - clone_name
+    - flavor: null
+    - avz_zone: null
     - pattern: "{0}_snapshot_{1}"
     - wait: false
     - to_addr_success: null
     - to_addr_error: null
 
   tasks:
+    check_flavor:
+      description: 'Checks if there is a flavor with the name specified as parameter'
+      action: nova.flavors_find name=<% $.flavor %>
+      publish:
+        flavor: <% task(check_flavor).result.id %>
+      publish-on-error:
+        flavor: null
+      on-success:
+        check_server
+      on-error:
+        check_server
+
+    check_availability_zone:
+      description: 'Checks if there is an availability zone with the name specified as parameter'
+      action: nova.availability_zones_list detailed=false
+      publish:
+        avz_zone: <% task(check_availability_zone).result.where($.zoneName = execution().input.avz_zone).first().zoneName %>
+      publish-on-error:
+        avz_zone: null
+      on-success:
+        check_server
+      on-error:
+        check_server
+
     check_server_by_name:
       description: 'Checks if there is an instance with the name specified as parameter'
       action: nova.servers_find name=<% $.instance %>
       publish:
         instance: <% task(check_server_by_name).result.id %>
-      on-complete:
+      on-success:
+        check_server
+      on-error:
         check_server
 
     check_server:
       description: 'Retrieves information about the server and identifies if is a boot from image or boot from volume instance'
+      join: all
       action: nova.servers_find id=<% $.instance %>
       publish:
         server: <% task(check_server).result %>
@@ -54,9 +83,9 @@ restore_clone_snapshot:
       input:
         name: <% $.clone_name %>
         image: <% task(get_image_snapshot).published.snapshot.id %>
-        flavor: <% task(check_server).published.server.flavor.id %>
+        flavor: <% coalesce($.flavor, task(check_server).published.server.flavor.id) %>
         meta: <% task(check_server).published.server.metadata %>
-        availability_zone: <% task(check_server).published.server.get('OS-EXT-AZ:availability_zone') %>
+        availability_zone: <% coalesce($.avz_zone, task(check_server).published.server.get('OS-EXT-AZ:availability_zone')) %>
       publish:
         clone_id: <% task(create_boot_from_image_instance).result.id %>
       on-success:
@@ -115,10 +144,10 @@ restore_clone_snapshot:
       action: nova.servers_create
       input:
         name: <% $.clone_name %>
-        flavor: <% task(check_server).published.server.flavor.id %>
         image: null
+        flavor: <% coalesce($.flavor, task(check_server).published.server.flavor.id) %>
         meta: <% task(check_server).published.server.metadata %>
-        availability_zone: <% task(check_server).published.server.get('OS-EXT-AZ:availability_zone') %>
+        availability_zone: <% coalesce($.avz_zone, task(check_server).published.server.get('OS-EXT-AZ:availability_zone')) %>
         block_device_mapping_v2:
           - 
             boot_index: 0
