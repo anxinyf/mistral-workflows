@@ -54,9 +54,6 @@ restore_inplace_snapshot:
       input:
         server: <% task(check_server).published.server.id %>
         image: <% task(get_image_snapshot).published.snapshot.id %>
-        flavor: <% task(check_server).published.server.flavor.id %>
-        meta: <% task(check_server).published.server.metadata %>
-        availability_zone: <% task(check_server).published.server.get('OS-EXT-AZ:availability_zone') %>
       publish:
         clone_id: <% task(rebuild_instance_from_snapshot).result.id %>
       on-success:
