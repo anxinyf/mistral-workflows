@@ -22,9 +22,7 @@ restore_clone_snapshot:
       action: nova.servers_find name=<% $.instance %>
       publish:
         instance: <% task(check_server_by_name).result.id %>
-      on-success:
-        check_server
-      on-error:
+      on-complete:
         check_server
 
     check_server:
