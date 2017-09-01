@@ -103,7 +103,7 @@ restore_inplace_snapshot:
         delay: 5
         count: 40
       on-success:
-        - error_task
+        - delete_previous_instance
       on-error:
         - error_task
 
