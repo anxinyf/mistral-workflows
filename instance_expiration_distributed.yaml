@@ -1,7 +1,7 @@
 ---
 version: '2.0'
 
-name: instance_expiration_old
+name: instance_expiration_distributed
 description: Workbook that contains instance_expiration_workflows
 
 workflows:
@@ -30,7 +30,7 @@ workflows:
         action: mistral.cron_triggers_create
         input:
           name: "<% task(check_instance).published.instance.id %>_expire_mail"
-          workflow_identifier: instance_expiration.mail_job
+          workflow_identifier: instance_expiration_distributed.mail_job
           workflow_input: {'instance_id':'<% task(check_instance).published.instance.id %>'}
           pattern: "0 0 * * *"
           first_time: <% (datetime(task(set_instance_metadata).published.expire_at) - timespan(days=>15)).format("%Y-%m-%d %H:%M")%>
@@ -41,7 +41,7 @@ workflows:
         action: mistral.cron_triggers_create
         input:
           name: "<% task(check_instance).published.instance.id %>_expire_job"
-          workflow_identifier: instance_expiration.expire_job
+          workflow_identifier: instance_expiration_distributed.expire_job
           workflow_input: {'instance_id':'<% task(check_instance).published.instance.id %>'}
           pattern: "0 0 * * *"
           first_time: <% datetime(task(set_instance_metadata).published.expire_at).format("%Y-%m-%d %H:%M") %>
@@ -140,7 +140,7 @@ workflows:
         action: mistral.cron_triggers_create
         input:
           name: "<% task(check_instance).published.instance.id %>_expire_mail"
-          workflow_identifier: instance_expiration.mail_job
+          workflow_identifier: instance_expiration_distributed.mail_job
           workflow_input: {'instance_id':'<% task(check_instance).published.instance.id %>'}
           pattern: "0 0 * * *"
           first_time: <% (datetime(task(check_instance).published.instance.expire_at) - timespan(days=>15)).format("%Y-%m-%d %H:%M")%>
@@ -151,7 +151,7 @@ workflows:
         action: mistral.cron_triggers_create
         input:
           name: "<% task(check_instance).published.instance.id %>_expire_job"
-          workflow_identifier: instance_expiration.expire_job
+          workflow_identifier: instance_expiration_distributed.expire_job
           workflow_input: {'instance_id':'<% task(check_instance).published.instance.id %>'}
           pattern: "0 0 * * *"
           first_time: <% datetime(task(check_instance).published.instance.expire_at).format("%Y-%m-%d %H:%M") %>

@@ -1,7 +1,7 @@
 ---
 version: '2.0'
 
-name: instance_expiration
+name: instance_expiration_project
 description: Workbook that contains instance_expiration_workflows
 
 workflows:
@@ -26,7 +26,7 @@ workflows:
         action: mistral.cron_triggers_create
         input:
           name: "daily_project_expiration"
-          workflow_identifier: instance_expiration.daily_project_expiration
+          workflow_identifier: instance_expiration_project.daily_project_expiration
           workflow_input: {}
           pattern: "0 0 * * *"
 
@@ -45,7 +45,7 @@ workflows:
       launch_instance_expirations:
         description: 'Reviews the expiration dates of the instances'
         with-items: instance in <% $.instances %>
-        workflow: instance_expiration.daily_instance_expiration instance=<% $.instance %>
+        workflow: instance_expiration_project.daily_instance_expiration instance=<% $.instance %>
 
   daily_instance_expiration:
     type: direct
@@ -91,11 +91,11 @@ workflows:
 
       send_expiration_mail:
         description: 'Send warning mail about expiration'
-        workflow: instance_expiration.mail_job instance=<% $.instance %>
+        workflow: instance_expiration_project.mail_job instance=<% $.instance %>
 
       expire_instance:
         description: 'Process instance expiration'
-        workflow: instance_expiration.expire_job instance=<% $.instance %>
+        workflow: instance_expiration_project.expire_job instance=<% $.instance %>
       
   mail_job:
     type: direct
