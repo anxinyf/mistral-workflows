@@ -26,7 +26,7 @@ workflows:
         action: keystone.projects_list domain=default
         keep-result: false
         publish:
-          projects: <% task(retrieve_all_projects).result.select(dict(id => $.id, name => $.name, type => $.get('type','none'),expire => $.get('expire','off'))).where($.type='personal').where($.expire='on') %>
+          projects: <% task(retrieve_all_projects).result.select(dict(id => $.id, type => $.get('type','none'),expire => $.get('expire','off'))).where($.type='personal').where($.expire='on') %>
         on-success:
           - launch_project_expirations
 
@@ -236,7 +236,7 @@ workflows:
         description: 'Sends an error mail to the administrators'
         action: std.email
         input:
-          to_addrs: ["cloud-infrastructure-3rd-level@cern.ch"]
+          to_addrs: ["cloud-infrastructure-expiration@cern.ch"]
           subject: The instance <% $.instance.name %> cannot be expired. Please check
           body: |
             The instance "<% $.instance.name %>" was configured to expire on "<% $.instance.expire_at %>"
