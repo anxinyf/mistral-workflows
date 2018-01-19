@@ -241,6 +241,9 @@ workflows:
           body: |
             The instance "<% $.instance.name %>" was configured to expire on "<% $.instance.expire_at %>"
             and this date has passed. Please check the instance.
+
+            <% $.instance.name %>
+
             Cheers!
             -- Thanks, Cloud Infrastructure Team.
           from_addr:  'noreply@cern.ch'
