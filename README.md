@@ -1,5 +1,15 @@
 # Mistral workflows
 
+## Structure
+
+The repository is divided in several folders:
+
+* dev: workflows and workbooks in development right now
+* scripts: series of scripts used for the CI/CD integration
+* templates: location of mail templates
+* workbooks: repository of workbooks currently in production
+* workflows: repository of workflows currently in production
+
 ## Examples about how to execute workflows with CLI
 ```bash
 # Create a workflow
