@@ -1,0 +1,17 @@
+stages:
+  - validate
+  - update
+
+test_workflows:
+  stage: validate
+  image: gitlab-registry.cern.ch/cloud/ciadm
+  script:
+    - bash scripts/validate.sh
+
+update_workflows:
+  stage: update
+  image: gitlab-registry.cern.ch/cloud/ciadm
+  only:
+    - master
+  script:
+    - bash scripts/update.sh
