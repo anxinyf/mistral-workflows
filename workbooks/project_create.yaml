@@ -29,6 +29,7 @@ workflows:
           domain: default
           description: <% $.description %>
           enabled: <% $.enabled %>
+          owner: <% $.owner %>
         publish:
           project_id: <% task(identity).result.id %>
         on-success:
