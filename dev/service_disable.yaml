@@ -149,7 +149,7 @@ workflows:
       - id
     tasks:
       empty_task:
-        action: std.echo output='skip'
+        action: std.noop
 
   container_infra:
     description: Updates the status of resources of a project on the container infrastructure service
@@ -158,7 +158,7 @@ workflows:
       - id
     tasks:
       empty_task:
-        action: std.echo output='skip'
+        action: std.noop
 
   workengine:
     description: Updates the status of resources of a project on the workflow service
@@ -167,4 +167,4 @@ workflows:
       - id
     tasks:
       empty_task:
-        action: std.echo output='skip'
+        action: std.noop
