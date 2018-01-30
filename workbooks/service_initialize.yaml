@@ -83,23 +83,30 @@ workflows:
       update_volume_quota:
         action: cinder.quotas_update tenant_id=<% $.id %> volumes=10 gigabytes=250 snapshots=20 backups=0 backup_gigabytes=0
         on-success:
-          - get_volume_types
-
-      get_volume_types:
-        action: cinder.volume_types_list
-        publish:
-          volume_type_names: <% task(get_volume_types).result.name %>
-        on-success:
-          - update_volume_quota_types
-
-      update_volume_quota_types:
-        with-items: vt_name in <% $.volume_type_names %>
-        action: cinder.quotas_update tenant_id=<% $.id %> volumes_<% vt_name %>=0 gigabytes_<% vt_name %>=0 snapshots_<% vt_name %>=-1
-        on-success:
           - update_volume_quota_standard
+          - update_volume_quota_io1
+          - update_volume_quota_cp1
+          - update_volume_quota_cpio1
+          - update_volume_quota_wig-cp1
+          - update_volume_quota_wig-cpio1
+
+      update_volume_quota_io1:
+        action: cinder.quotas_update tenant_id=<% $.id %> volumes_io1=0 gigabytes_io1=0 snapshots_io1='-1'
+
+      update_volume_quota_cp1:
+        action: cinder.quotas_update tenant_id=<% $.id %> volumes_cp1=0 gigabytes_cp1=0 snapshots_cp1='-1'
+
+      update_volume_quota_cpio1:
+        action: cinder.quotas_update tenant_id=<% $.id %> volumes_cpio1=0 gigabytes_cpio1=0 snapshots_cpio1='-1'
+
+      update_volume_quota_wig-cp1:
+        action: cinder.quotas_update tenant_id=<% $.id %> volumes_wig-cp1=0 gigabytes_wig-cp1=0 snapshots_wig-cp1='-1'
+
+      update_volume_quota_wig-cpio1:
+        action: cinder.quotas_update tenant_id=<% $.id %> volumes_wig-cpio1=0 gigabytes_wig-cpio1=0 snapshots_wig-cpio1='-1'
 
       update_volume_quota_standard:
-        action: cinder.quotas_update tenant_id=<% $.id %> volumes_standard=10 gigabytes_standard=250 snapshots_standard=-1
+        action: cinder.quotas_update tenant_id=<% $.id %> volumes_standard=10 gigabytes_standard=250 snapshots_standard='-1'
 
   image:
     description: Initializes a project on the image service and sets default quotas
