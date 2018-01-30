@@ -81,14 +81,7 @@ workflows:
       - id
     tasks:
       update_volume_quota:
-        action: cinder.quotas_update
-        input:
-          tenant_id: <% $.id %>
-          volumes: 10
-          gigabytes: 100
-          snapshots: 10
-          backups: 0
-          backup_gigabytes: 0
+        action: cinder.quotas_update tenant_id=<% $.id %> volumes=10 gigabytes=250 snapshots=20 backups=0 backup_gigabytes=0
         on-success:
           - get_volume_types
 
@@ -101,12 +94,12 @@ workflows:
 
       update_volume_quota_types:
         with-items: vt_name in <% $.volume_type_names %>
-        action: cinder.quotas_update tenant_id=<% $.id %> volumes_<% vt_name %>=10 gigabytes_<% vt_name %>=100 snapshots_<% vt_name %>=5
-        on-sucess:
+        action: cinder.quotas_update tenant_id=<% $.id %> volumes_<% vt_name %>=0 gigabytes_<% vt_name %>=0 snapshots_<% vt_name %>=-1
+        on-success:
           - update_volume_quota_standard
 
       update_volume_quota_standard:
-        action: cinder.quotas_update tenant_id=<% $.id %> volumes_standard=10 gigabytes_standard=100 snapshots_standard=5
+        action: cinder.quotas_update tenant_id=<% $.id %> volumes_standard=10 gigabytes_standard=250 snapshots_standard=-1
 
   image:
     description: Initializes a project on the image service and sets default quotas
