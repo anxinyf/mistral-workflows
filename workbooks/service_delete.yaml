@@ -102,7 +102,7 @@ workflows:
           - quota_cleanup
       # Cleanup quota entries in nova
       quota_cleanup:
-        action: nova.quotas_delete tenant_id= <% $.id %>
+        action: nova.quotas_delete tenant_id=<% $.id %>
 
   blockstorage:
     description: Deletes all resources of a project on the blockstorage service
@@ -118,7 +118,7 @@ workflows:
             all_tenants: true
             project_id: <% $.id %>
         publish:
-          volume_ids: <% task(get_all_volumes).result.id %>
+          volume_ids: <% task(get_volumes).result.id %>
         on-success:
           - delete_volumes
       # Delete the volumes
@@ -129,7 +129,7 @@ workflows:
           - quota_cleanup
       # Cleanup quota entries in cinder
       quota_cleanup:
-        action: cinder.quotas_delete tenant_id= <% $.id %>
+        action: cinder.quotas_delete tenant_id=<% $.id %>
 
   image:
     description: Deletes all resources of a project on the image service
