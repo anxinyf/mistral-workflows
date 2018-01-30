@@ -95,7 +95,7 @@ workflows:
       update_volume_quota_types:
         with-items: vt_name in <% $.volume_type_names %>
         action: cinder.quotas_update tenant_id=<% $.id %> volumes_<% vt_name %>=0 gigabytes_<% vt_name %>=0 snapshots_<% vt_name %>=-1
-        on-sucess:
+        on-success:
           - update_volume_quota_standard
 
       update_volume_quota_standard:
