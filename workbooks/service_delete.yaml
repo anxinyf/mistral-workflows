@@ -15,69 +15,69 @@ workflows:
         publish:
           project_id: <% task(project_exists).result.id %>
         on-success:
-          - workengine
-          - container_infra
+          - mistral
+          - magnum
 
-      workengine:
-        workflow: workengine
+      mistral:
+        workflow: mistral
         input:
           id: <% $.id %>
 
-      container_infra:
-        workflow: container_infra
-        input:
-          id: <% $.id %>
-        on-success:
-          - orchestration
-          - key_manager
-
-      key_manager:
-        workflow: key_manager
+      magnum:
+        workflow: magnum
         input:
           id: <% $.id %>
         on-success:
-          - compute
+          - heat
+          - barbican
 
-      orchestration:
-        workflow: orchestration
+      barbican:
+        workflow: barbican
         input:
           id: <% $.id %>
         on-success:
-          - compute
+          - nova
 
-      compute:
+      heat:
+        workflow: heat
+        input:
+          id: <% $.id %>
+        on-success:
+          - nova
+
+      nova:
         join: all
-        workflow: compute
+        workflow: nova
         input:
           id: <% $.id %>
         on-success:
-          - blockstorage
-          - fileshare
-          - network
+          - cinder
+          - manila
+          - neutron
 
-      blockstorage:
-        workflow: blockstorage
+      cinder:
+        workflow: cinder
         input:
           id: <% $.id %>
         on-success:
-          - image
+          - glance
 
-      image:
-        workflow: image
+      glance:
+        workflow: glance
         input:
           id: <% $.id %>
 
-      fileshare:
-        workflow: fileshare
+      manila:
+        workflow: manila
         input:
           id: <% $.id %>
 
-      network:
-        workflow: network
+      neutron:
+        workflow: neutron
         input:
           id: <% $.id %>
 
-  compute:
+  nova:
     description: Deletes all resources of a project on the compute service
     type: direct
     input:
@@ -104,7 +104,7 @@ workflows:
       quota_cleanup:
         action: nova.quotas_delete tenant_id=<% $.id %>
 
-  blockstorage:
+  cinder:
     description: Deletes all resources of a project on the blockstorage service
     type: direct
     input:
@@ -131,7 +131,7 @@ workflows:
       quota_cleanup:
         action: cinder.quotas_delete tenant_id=<% $.id %>
 
-  image:
+  glance:
     description: Deletes all resources of a project on the image service
     type: direct
     input:
@@ -140,7 +140,7 @@ workflows:
       empty_task:
         action: std.noop
 
-  fileshare:
+  manila:
     description: Deletes all resources of a project on the fileshare service
     type: direct
     input:
@@ -149,7 +149,7 @@ workflows:
       empty_task:
         action: std.noop
 
-  orchestration:
+  heat:
     description: Deletes all resources of a project on the orchestration service
     type: direct
     input:
@@ -158,7 +158,7 @@ workflows:
       empty_task:
         action: std.noop
 
-  key_manager:
+  barbican:
     description: Deletes all resources of a project on the key_manager service
     type: direct
     input:
@@ -167,7 +167,7 @@ workflows:
       empty_task:
         action: std.noop
 
-  network:
+  neutron:
     description: Deletes all resources of a project on the network service
     type: direct
     input:
@@ -176,7 +176,7 @@ workflows:
       empty_task:
         action: std.noop
 
-  container_infra:
+  magnum:
     description: Deletes all resources of a project on the container infrastructure service
     type: direct
     input:
@@ -185,7 +185,7 @@ workflows:
       empty_task:
         action: std.noop
 
-  workengine:
+  mistral:
     description: Deletes all resources of a project on the workflow service
     type: direct
     input:

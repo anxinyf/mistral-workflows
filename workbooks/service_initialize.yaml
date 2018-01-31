@@ -17,50 +17,50 @@ workflows:
         publish:
           project_id: <% task(project_exists).result.id %>
         on-success:
-          - compute
-          - blockstorage
-          - image
-          - orchestration
-          - key_manager
-          - network
-          - container_infra
+          - nova
+          - cinder
+          - glance
+          - heat
+          - barbican
+          - neutron
+          - magnum
 
-      compute:
-        workflow: compute
+      nova:
+        workflow: nova
         input:
           id: <% $.project_id %>
 
-      blockstorage:
-        workflow: blockstorage
+      cinder:
+        workflow: cinder
         input:
           id: <% $.project_id %>
 
-      image:
-        workflow: image
+      glance:
+        workflow: glance
         input:
           id: <% $.project_id %>
 
-      orchestration:
-        workflow: orchestration
+      heat:
+        workflow: heat
         input:
           id: <% $.project_id %>
 
-      key_manager:
-        workflow: key_manager
+      barbican:
+        workflow: barbican
         input:
           id: <% $.project_id %>
 
-      network:
-        workflow: network
+      neutron:
+        workflow: neutron
         input:
           id: <% $.project_id %>
 
-      container_infra:
-        workflow: container_infra
+      magnum:
+        workflow: magnum
         input:
           id: <% $.project_id %>
 
-  compute:
+  nova:
     description: Initializes a project on the compute service and sets default quotas
     type: direct
     input:
@@ -74,7 +74,7 @@ workflows:
           ram: 20480
           instances: 5
 
-  blockstorage:
+  cinder:
     description: Initializes a project on the blockstorage service and sets default quotas
     type: direct
     input:
@@ -108,7 +108,7 @@ workflows:
       update_volume_quota_standard:
         action: cinder.quotas_update tenant_id=<% $.id %> volumes_standard=10 gigabytes_standard=250 snapshots_standard='-1'
 
-  image:
+  glance:
     description: Initializes a project on the image service and sets default quotas
     type: direct
     input:
@@ -117,7 +117,7 @@ workflows:
       empty_task:
         action: std.noop
 
-  fileshare:
+  manila:
     description: Initializes a project on the fileshare service and sets default quotas
     type: direct
     input:
@@ -126,7 +126,7 @@ workflows:
       empty_task:
         action: std.noop
 
-  orchestration:
+  heat:
     description: Initializes a project on the orchestration service and sets default quotas
     type: direct
     input:
@@ -135,7 +135,7 @@ workflows:
       empty_task:
         action: std.noop
 
-  key_manager:
+  barbican:
     description: Initializes a project on the key_manager service and sets default quotas
     type: direct
     input:
@@ -144,7 +144,7 @@ workflows:
       empty_task:
         action: std.noop
 
-  network:
+  neutron:
     description: Initializes a project on the network service and sets default quotas
     type: direct
     input:
@@ -153,7 +153,7 @@ workflows:
       empty_task:
         action: std.noop
 
-  container_infra:
+  magnum:
     description: Initializes a project on the container infrastructure service and sets default quotas
     type: direct
     input:
@@ -162,16 +162,7 @@ workflows:
       empty_task:
         action: std.noop
 
-  fileshare:
-    description: Initializes a project on the fileshare service and sets default quotas
-    type: direct
-    input:
-      - id
-    tasks:
-      empty_task:
-        action: std.noop
-
-  workengine:
+  mistral:
     description: Initializes a project on the workflow service and sets default quotas
     type: direct
     input:
