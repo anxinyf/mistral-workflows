@@ -76,7 +76,22 @@ workflows:
         publish:
           project_id: <% task(create_project).result.id %>
         on-success:
+          - check_base_endpoint_group
           - get_user_id
+
+      check_base_endpoint_group:
+        action: keystone.endpoint_filter_check_endpoint_group_in_project
+        input: 
+          project: <% $.project_id %>
+          endpoint_group: 0cf3334a82854c8e85ea4428c283dfca
+        on-error:
+          - add_base_endpoint_group
+
+      add_base_endpoint_group:
+        action: keystone.endpoint_filter_add_endpoint_group_to_project
+        input: 
+          project: <% $.project_id %>
+          endpoint_group: 0cf3334a82854c8e85ea4428c283dfca
 
       get_user_id:
         action: keystone.users_find
