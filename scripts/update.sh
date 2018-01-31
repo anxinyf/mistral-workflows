@@ -61,16 +61,16 @@ for file in workflows/*.yaml; do
         scope=$(openstack workflow show $name -f value -c Scope)
         if [ "$scope" == "public" ]; then
             # The workflow is public update it with public as parameter
-	    echo "openstack workflow update --public $file"
+            echo "openstack workflow update --public $file"
             openstack workflow update --public $file
         else
             # The workflow is not public just update it
-	    echo "openstack workflow update $file"
+            echo "openstack workflow update $file"
             openstack workflow update $file
         fi
     else
         # The workflow does not exist, just create it
-	echo "openstack workflow create $file"
+        echo "openstack workflow create $file"
         openstack workflow create $file
     fi
 done
