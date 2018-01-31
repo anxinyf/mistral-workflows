@@ -28,10 +28,10 @@ code=0
 for file in workbooks/*.yaml; do
     [ -e "$file" ] || continue
     echo "Validating $file"
-    valid=$(openstack workbook validate $file -f value -c Valid)
-    if [ "$valid" != "True" ]; then
-	 echo "Validation failed on $file please check..."
-	 code=1
+    error=$(openstack workbook validate $file -f value -c Error | head -1)
+    if [ "$error" != "None" ]; then
+        echo "Validation failed on $file please check error '$error'"
+        code=1
     fi
 done
 
@@ -39,10 +39,10 @@ done
 for file in workflows/*.yaml; do
     [ -e "$file" ] || continue
     echo "Validating $file"
-    valid=$(openstack workflow validate $file -f value -c Valid)
-    if [ "$valid" != "True" ]; then
-         echo "Validation failed on $file please check..."
-         code=1
+    error=$(openstack workflow validate $file -f value -c Error | head -1)
+    if [ "$error" != "None" ]; then
+        echo "Validation failed on $file please check error '$error'"
+        code=1
     fi
 done
 
