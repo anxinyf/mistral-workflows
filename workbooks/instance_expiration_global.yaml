@@ -79,8 +79,8 @@ workflows:
         description: 'Checks the instance expiration'
         action: std.noop
         on-success:
-          - fix_instance_expiration: <% not $.instance.expire_at  or (datetime($.instance.expire_at) >  datetime(task(init).published.max_expire_date)) %>
-          - process_instance_expiration: <% $.instance.expire_at and (datetime($.instance.expire_at) <= datetime(task(init).published.max_expire_date)) %>
+          - fix_instance_expiration: <% not $.instance.expire_at or not isDatetime($.instance.expire_at) or (datetime($.instance.expire_at) >  datetime(task(init).published.max_expire_date)) %>
+          - process_instance_expiration: <% $.instance.expire_at and isDatetime($.instance.expire_at) and (datetime($.instance.expire_at) <= datetime(task(init).published.max_expire_date)) %>
 
       fix_instance_expiration:
         description: 'Fixes instance expiration'
