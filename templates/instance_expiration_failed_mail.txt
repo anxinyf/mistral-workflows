@@ -1,0 +1,11 @@
+
+
+     Dear Openstack Administrator,
+
+     The instance "{instance}" was configured to expire on "{expire_date}" and
+     this date has passed. Please check the instance.
+
+     Cheers,
+     Cloud Infrastructure Team
+
+
