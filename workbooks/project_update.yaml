@@ -31,10 +31,10 @@ workflows:
         on-success:
           # If project metadata has fim-skip=True, the project resources will not be affected
           - identity: <% $.fim_skip = null or $.fim_skip = "True" or $.current_enabled = false or $.enabled = true %>
-          - service_disable: <% $.fim_skip = "False" and $.current_enabled = true and $.enabled = false %>
+          - service_shutdown: <% $.fim_skip = "False" and $.current_enabled = true and $.enabled = false %>
       
-      service_disable:
-        workflow: service_disable.init
+      service_shutdown:
+        workflow: service_shutdown.init
         input:
           id: <% $.id %>
         on-success:

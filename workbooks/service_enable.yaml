@@ -1,0 +1,146 @@
+---
+version: '2.0'
+
+name: service_enable
+description: Workflow that enables a service on a project
+
+workflows:
+  add_endpoint_group:
+    description: Auxiliary workflow to add and endpoint_group from a project
+    type: direct
+    input:
+      - id
+      - endpoint_group
+    tasks:
+      check_base_endpoint_group:
+        action: keystone.endpoint_filter_check_endpoint_group_in_project
+        input: 
+          project: <% $.project_id %>
+          endpoint_group: <% $.endpoint_group %>
+        on-error:
+          - add_base_endpoint_group
+
+      add_base_endpoint_group:
+        action: keystone.endpoint_filter_add_endpoint_group_to_project
+        input: 
+          project: <% $.project_id %>
+          endpoint_group: <% $.endpoint_group %>
+
+  manila:
+    description: Enables the Manila service on a project
+    type: direct
+    input:
+      - id
+    tasks:
+      add_endpoint_group:
+        workflow: service_enable.add_endpoint_group
+        input:
+          id: <% $.id %>
+          endpoint_group: e139043395a6404eba26e1b259adf5a0
+        on-success:
+          - service_initialize
+
+      service_initialize:
+        workflow: service_initialize.manila
+        input:
+          id: <% $.id %>
+
+  barbican:
+    description: Enables the Barbican service on a project
+    type: direct
+    input:
+      - id
+    tasks:
+      add_endpoint_group:
+        workflow: service_enable.add_endpoint_group
+        input:
+          id: <% $.id %>
+          endpoint_group: 063d65c80b9111e6b5123e1d05defe78
+        on-success:
+          - service_initialize
+
+      service_initialize:
+        workflow: service_initialize.barbican
+        input:
+          id: <% $.id %>
+
+  neutron:
+    description: Enables the Neutron service on a project
+    type: direct
+    input:
+      - id
+    tasks:
+      add_endpoint_group:
+        workflow: service_enable.add_endpoint_group
+        input:
+          id: <% $.id %>
+          endpoint_group: b051dc2a99714d6c92aff4aef4dc9e7c
+        on-success:
+          - service_initialize
+
+      service_initialize:
+        workflow: service_initialize.neutron
+        input:
+          id: <% $.id %>
+
+  magnum:
+    description: Disables the Magnum service on a project
+    type: direct
+    input:
+      - id
+    tasks:
+      add_endpoint_group:
+        workflow: service_enable.add_endpoint_group
+        input:
+          id: <% $.id %>
+          endpoint_group: a46aedf3ad1d45208c98a7a148988d10
+        on-success:
+          - service_initialize
+
+      service_initialize:
+        workflow: service_initialize.neutron
+        input:
+          id: <% $.id %>
+
+  mistral:
+    description: Disables the Mistral service on a project
+    type: direct
+    input:
+      - id
+    tasks:
+      add_endpoint_group:
+        workflow: service_enable.add_endpoint_group
+        input:
+          id: <% $.id %>
+          endpoint_group: 631a3d16b1934ee694129c5cf83dd8f8
+        on-success:
+          - service_initialize
+
+      service_initialize:
+        workflow: service_initialize.neutron
+        input:
+          id: <% $.id %>
+
+  s3:
+    description: Disables the S3 service on a project
+    type: direct
+    input:
+      - id
+    tasks:
+      remove_endpoint_group:
+        workflow: service_enable.add_endpoint_group
+        input:
+          id: <% $.id %>
+          endpoint_group: 53290f440379bc46bbcd3660f16f126d
+
+  ironic:
+    description: Disables the Ironic service on a project
+    type: direct
+    input:
+      - id
+    tasks:
+      remove_endpoint_group:
+        workflow: service_enable.add_endpoint_group
+        input:
+          id: <% $.id %>
+          endpoint_group: 833550cc3acf11e7a91992ebcb67fe33

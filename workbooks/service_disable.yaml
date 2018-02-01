@@ -2,169 +2,147 @@
 version: '2.0'
 
 name: service_disable
-description: Workbook that contains the disable operations on services on a project
+description: Workflow that disables a service on a project
 
 workflows:
-  init:
+  remove_endpoint_group:
+    description: Auxiliary workflow to remove and endpoint_group from a project
     type: direct
     input:
       - id
-
+      - endpoint_group
     tasks:
-      project_exists:
-        action: keystone.projects_get project=<% $.id %>
-        publish:
-          project_id: <% task(project_exists).result.id %>
+        check_service_endpoint_group:
+        action: keystone.endpoint_filter_check_endpoint_group_in_project
+        input: 
+          project: <% $.id %>
+          endpoint_group: <% $.endpoint_group %>
         on-success:
-          - mistral
-          - magnum
-      
-      mistral:
-        workflow: mistral
-        input:
-          id: <% $.id %>
+          - remove_service_endpoint_group
+        on-error:
+          - succeed
 
-      magnum:
-        workflow: magnum
-        input:
-          id: <% $.id %>
-        on-success:
-          - heat
-          - barbican
-
-      barbican:
-        workflow: barbican
-        input:
-          id: <% $.id %>
-        on-success:
-          - nova
-
-      heat:
-        workflow: heat
-        input:
-          id: <% $.id %>
-        on-success:
-          - nova
-
-      nova:
-        join: all
-        workflow: nova
-        input:
-          id: <% $.id %>
-        on-success:
-          - cinder
-          - manila
-          - neutron
-
-      cinder:
-        workflow: cinder
-        input:
-          id: <% $.id %>
-
-      glance:
-        workflow: glance
-        input:
-          id: <% $.id %>
-
-      manila:
-        workflow: manila
-        input:
-          id: <% $.id %>
-
-      neutron:
-        workflow: neutron
-        input:
-          id: <% $.id %>
-
-  nova:
-    description: Updates the status of resources of a project on the compute service
-    type: direct
-    input:
-      - id
-    tasks:
-      stop_instances_get_vms:
-        action: nova.servers_list
-        input:
-          search_opts:
-            all_tenants: true
-            project_id: <% $.id %>
-        publish:
-          server_ids: <% task(stop_instances_get_vms).result.id %>
-        on-success:
-          - stop_instances
-
-      stop_instances:
-        with-items: server_id in <% $.server_ids %>
-        action: nova.servers_stop server=<% $.server_id %>
-
-  cinder:
-    description: Updates the status of resources of a project on the blockstorage service
-    type: direct
-    input:
-      - id
-    tasks:
-      empty_task:
-        action: std.noop
-
-  glance:
-    description: Updates the status of resources of a project on the image service
-    type: direct
-    input:
-      - id
-    tasks:
-      empty_task:
-        action: std.noop
+      remove_service_endpoint_group:
+        action: keystone.endpoint_filter.delete_endpoint_group_from_project
+        input: 
+          project: <% $.id %>
+          endpoint_group: <% $.endpoint_group %>
 
   manila:
-    description: Updates the status of resources of a project on the fileshare service
+    description: Disables the Manila service on a project
     type: direct
     input:
       - id
     tasks:
-      empty_task:
-        action: std.noop
-
-  heat:
-    description: Updates the status of resources of a project on the orchestration service
-    type: direct
-    input:
-      - id
-    tasks:
-      empty_task:
-        action: std.noop
+      service_shutdown:
+        workflow: service_shutdown.manila
+        input:
+          id: <% $.id %>
+        on-success:
+          - remove_endpoint_group
+      
+      remove_endpoint_group:
+        workflow: service_disable.remove_endpoint_group
+        input:
+          id: <% $.id %>
+          endpoint_group: e139043395a6404eba26e1b259adf5a0
 
   barbican:
-    description: Updates the status of resources of a project on the key_manager service
+    description: Disables the Barbican service on a project
     type: direct
     input:
       - id
     tasks:
-      empty_task:
-        action: std.noop
+      service_shutdown:
+        workflow: service_shutdown.barbican
+        input:
+          id: <% $.id %>
+        on-success:
+          - remove_endpoint_group
+
+      remove_endpoint_group:
+        workflow: service_disable.remove_endpoint_group
+        input:
+          id: <% $.id %>
+          endpoint_group: 063d65c80b9111e6b5123e1d05defe78
 
   neutron:
-    description: Updates the status of resources of a project on the network service
+    description: Disables the Neutron service on a project
     type: direct
     input:
       - id
     tasks:
-      empty_task:
-        action: std.noop
+      service_shutdown:
+        workflow: service_shutdown.neutron
+        input:
+          id: <% $.id %>
+        on-success:
+          - remove_endpoint_group
+
+      remove_endpoint_group:
+        workflow: service_disable.remove_endpoint_group
+        input:
+          id: <% $.id %>
+          endpoint_group: b051dc2a99714d6c92aff4aef4dc9e7c
 
   magnum:
-    description: Updates the status of resources of a project on the container infrastructure service
+    description: Disables the Magnum service on a project
     type: direct
     input:
       - id
     tasks:
-      empty_task:
-        action: std.noop
+      service_shutdown:
+        workflow: service_shutdown.magnum
+        input:
+          id: <% $.id %>
+        on-success:
+          - remove_endpoint_group
+
+      remove_endpoint_group:
+        workflow: service_disable.remove_endpoint_group
+        input:
+          id: <% $.id %>
+          endpoint_group: a46aedf3ad1d45208c98a7a148988d10
 
   mistral:
-    description: Updates the status of resources of a project on the workflow service
+    description: Disables the Mistral service on a project
     type: direct
     input:
       - id
     tasks:
-      empty_task:
-        action: std.noop
+      service_shutdown:
+        workflow: service_shutdown.mistral
+        input:
+          id: <% $.id %>
+        on-success:
+          - remove_endpoint_group
+
+      remove_endpoint_group:
+        workflow: service_disable.remove_endpoint_group
+        input:
+          id: <% $.id %>
+          endpoint_group: 631a3d16b1934ee694129c5cf83dd8f8
+
+  s3:
+    description: Disables the S3 service on a project
+    type: direct
+    input:
+      - id
+    tasks:
+      remove_endpoint_group:
+        workflow: service_disable.remove_endpoint_group
+        input:
+          id: <% $.id %>
+          endpoint_group: 53290f440379bc46bbcd3660f16f126d
+
+  ironic:
+    description: Disables the Ironic service on a project
+    type: direct
+    input:
+      - id
+    tasks:
+      remove_endpoint_group:
+        workflow: service_disable.remove_endpoint_group
+        input:
+          id: <% $.id %>
+          endpoint_group: 833550cc3acf11e7a91992ebcb67fe33

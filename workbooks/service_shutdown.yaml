@@ -1,0 +1,170 @@
+---
+version: '2.0'
+
+name: service_shutdown
+description: Workbook that contains the disable operations on services on a project
+
+workflows:
+  init:
+    type: direct
+    input:
+      - id
+
+    tasks:
+      project_exists:
+        action: keystone.projects_get project=<% $.id %>
+        publish:
+          project_id: <% task(project_exists).result.id %>
+        on-success:
+          - mistral
+          - magnum
+      
+      mistral:
+        workflow: mistral
+        input:
+          id: <% $.id %>
+
+      magnum:
+        workflow: magnum
+        input:
+          id: <% $.id %>
+        on-success:
+          - heat
+          - barbican
+
+      barbican:
+        workflow: barbican
+        input:
+          id: <% $.id %>
+        on-success:
+          - nova
+
+      heat:
+        workflow: heat
+        input:
+          id: <% $.id %>
+        on-success:
+          - nova
+
+      nova:
+        join: all
+        workflow: nova
+        input:
+          id: <% $.id %>
+        on-success:
+          - cinder
+          - manila
+          - neutron
+
+      cinder:
+        workflow: cinder
+        input:
+          id: <% $.id %>
+
+      glance:
+        workflow: glance
+        input:
+          id: <% $.id %>
+
+      manila:
+        workflow: manila
+        input:
+          id: <% $.id %>
+
+      neutron:
+        workflow: neutron
+        input:
+          id: <% $.id %>
+
+  nova:
+    description: Updates the status of resources of a project on the compute service
+    type: direct
+    input:
+      - id
+    tasks:
+      stop_instances_get_vms:
+        action: nova.servers_list
+        input:
+          search_opts:
+            all_tenants: true
+            project_id: <% $.id %>
+        publish:
+          server_ids: <% task(stop_instances_get_vms).result.id %>
+        on-success:
+          - stop_instances
+
+      stop_instances:
+        with-items: server_id in <% $.server_ids %>
+        action: nova.servers_stop server=<% $.server_id %>
+
+  cinder:
+    description: Updates the status of resources of a project on the blockstorage service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
+        action: std.noop
+
+  glance:
+    description: Updates the status of resources of a project on the image service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
+        action: std.noop
+
+  manila:
+    description: Updates the status of resources of a project on the fileshare service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
+        action: std.noop
+
+  heat:
+    description: Updates the status of resources of a project on the orchestration service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
+        action: std.noop
+
+  barbican:
+    description: Updates the status of resources of a project on the key_manager service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
+        action: std.noop
+
+  neutron:
+    description: Updates the status of resources of a project on the network service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
+        action: std.noop
+
+  magnum:
+    description: Updates the status of resources of a project on the container infrastructure service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
+        action: std.noop
+
+  mistral:
+    description: Updates the status of resources of a project on the workflow service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
+        action: std.noop
