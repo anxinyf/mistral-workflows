@@ -12,7 +12,7 @@ workflows:
       - id
       - endpoint_group
     tasks:
-        check_service_endpoint_group:
+      check_service_endpoint_group:
         action: keystone.endpoint_filter_check_endpoint_group_in_project
         input: 
           project: <% $.id %>
