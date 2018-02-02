@@ -133,7 +133,7 @@ workflows:
           url: https://gitlab.cern.ch/cloud-infrastructure/mistral-workflows/raw/master/templates/instance_expiration_reminder_mail.txt
         publish:
           subject: <% format("The instance {instance} is going to expire soon", instance => $.instance.name) %>
-          body: <% format($.result.content, instance => $.instance.name, expire_date => $.instance.expire_at) %>
+          body: <% format(task(retrieve_template).result.content, instance => $.instance.name, expire_date => datetime($.instance.expire_at).format("%d %B %Y")) %>
         on-success:
           - send_mail
 
@@ -195,7 +195,7 @@ workflows:
           url: https://gitlab.cern.ch/cloud-infrastructure/mistral-workflows/raw/master/templates/instance_expiration_expired_mail.txt
         publish:
           subject: <% format("The instance {instance} has expired", instance => $.instance.name) %>
-          body: <% format($.result.content, instance => $.instance.name, expire_date => $.instance.expire_at) %>
+          body: <% format($.result.content, instance => $.instance.name, expire_date => datetime($.instance.expire_at).format("%d %B %Y")) %>
         on-success:
           - send_mail
 
@@ -235,7 +235,7 @@ workflows:
           url: https://gitlab.cern.ch/cloud-infrastructure/mistral-workflows/raw/master/templates/instance_expiration_deleted_mail.txt
         publish:
           subject: <% format("The instance {instance} has been deleted after its expiration", instance => $.instance.name) %>
-          body: <% format($.result.content, instance => $.instance.name, expire_date => $.instance.expire_at) %>
+          body: <% format($.result.content, instance => $.instance.name, expire_date => datetime($.instance.expire_at).format("%d %B %Y")) %>
         on-success:
           - send_mail
 
@@ -262,7 +262,7 @@ workflows:
           url: https://gitlab.cern.ch/cloud-infrastructure/mistral-workflows/raw/master/templates/instance_expiration_failed_mail.txt
         publish:
           subject: <% format("The instance {instance} cannot be expired. Please check", instance => $.instance.name) %>
-          body: <% format($.result.content, instance => $.instance.name, expire_date => $.instance.expire_at) %>
+          body: <% format($.result.content, instance => $.instance.name, expire_date => datetime($.instance.expire_at).format("%d %B %Y")) %>
         on-success:
           - send_mail
 
