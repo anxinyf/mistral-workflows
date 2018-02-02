@@ -71,6 +71,7 @@ workflows:
           today_date: <% now().replace(hour => 0, minute=>0, second=>0, microsecond=>0) %>
           max_expire_date: <% now().replace(hour => 0, minute=>0, second=>0, microsecond=>0) + timespan(days=>90) %>
           mail_dates: [37, 22, 14, 12, 10, 9, 8]
+          regexp_date: "^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}\.\d{6}$"
           pre_expire_date: 7
         on-success:
           - check_instance_expiration
@@ -79,8 +80,8 @@ workflows:
         description: 'Checks the instance expiration'
         action: std.noop
         on-success:
-          - fix_instance_expiration: <% not $.instance.expire_at or not isDatetime($.instance.expire_at) or (datetime($.instance.expire_at) >  datetime(task(init).published.max_expire_date)) %>
-          - process_instance_expiration: <% $.instance.expire_at and isDatetime($.instance.expire_at) and (datetime($.instance.expire_at) <= datetime(task(init).published.max_expire_date)) %>
+          - fix_instance_expiration: <% not $.instance.expire_at or not regex(regexp_date).matches($.instance.expire_at) or (datetime($.instance.expire_at) >  datetime(task(init).published.max_expire_date)) %>
+          - process_instance_expiration: <% $.instance.expire_at and regex(regexp_date).matches($.instance.expire_at) and (datetime($.instance.expire_at) <= datetime(task(init).published.max_expire_date)) %>
 
       fix_instance_expiration:
         description: 'Fixes instance expiration'
