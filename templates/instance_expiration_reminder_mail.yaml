@@ -1,0 +1,37 @@
+subject: 'The instance {instance} is going to expire soon'
+body: |
+  Dear Openstack User,
+
+  The instance "{instance}" that's running on your personal project
+  in the Cloud Infrastructure Service is going to expire on "{expire_date}".
+
+  If you don't need this machine anymore, please delete it so other customers can
+  use the resources. If you still need it, you can extend the expiration of the machine
+  in the OpenStack website.
+
+  If you have any question or need any help, please don't hesitate to reach out
+  through a ticket in ServiceNow.
+
+
+  Thank you for your attention,
+
+  Cheers,
+  Cloud Infrastructure Team
+html_body: |
+  Dear Openstack User,
+
+  The instance "{instance}" that's running on your personal project
+  in the Cloud Infrastructure Service is going to expire on "{expire_date}".
+
+  If you don't need this machine anymore, please delete it so other customers can
+  use the resources. If you still need it, you can extend the expiration of the machine
+  in the OpenStack website.
+
+  If you have any question or need any help, please don't hesitate to reach out
+  through a ticket in ServiceNow.
+
+
+  Thank you for your attention,
+
+  Cheers,
+  Cloud Infrastructure Team

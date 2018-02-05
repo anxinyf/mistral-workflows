@@ -1,0 +1,19 @@
+subject: 'The instance {instance} cannot be expired. Please check'
+body: |
+  Dear Openstack Administrator,
+
+  The instance "{instance}" was configured to expire on "{expire_date}" and
+  this date has passed. Please check the instance.
+
+  Cheers,
+  Cloud Infrastructure Team
+html_body: |
+  Dear Openstack Administrator,
+
+  The instance "{instance}" was configured to expire on "{expire_date}" and
+  this date has passed. Please check the instance.
+
+  Cheers,
+  Cloud Infrastructure Team
+
+
