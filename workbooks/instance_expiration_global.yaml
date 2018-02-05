@@ -2,7 +2,6 @@
 version: '2.0'
 
 name: instance_expiration_global
-description: Workbook that contains instance_expiration_workflows
 
 workflows:
   create_daily_expiration_job:
@@ -128,12 +127,15 @@ workflows:
     tasks:
       retrieve_template:
         description: 'Retrieve template from Gitlab'
-        action: std.http
+        workflow: mail_template
         input:
-          url: https://gitlab.cern.ch/cloud-infrastructure/mistral-workflows/raw/master/templates/instance_expiration_reminder_mail.txt
+          template: instance_expiration_reminder_mail
+          replacements:
+            "{instance}": <% $.instance.name %>
+            "{expire_date}": <% datetime($.instance.expire_at).format("%d %B %Y") %>
         publish:
-          subject: <% format("The instance {instance} is going to expire soon", instance => $.instance.name) %>
-          body: <% format(task(retrieve_template).result.content, instance => $.instance.name, expire_date => datetime($.instance.expire_at).format("%d %B %Y")) %>
+          subject: <% task(retrieve_template).result.subject %>
+          body: <% task(retrieve_template).result.body %>
         on-success:
           - send_mail
 
