@@ -1,0 +1,31 @@
+subject: The instance {instance} has been deleted after its expiration
+body: |
+  Dear Openstack User,
+
+  The instance "{instance}" that's running on your personal project
+  in the Cloud Infrastructure Service has expired on "{expire_date}" and
+  it has been deleted.
+
+  If you have any question or need any help, please don't hesitate to reach out
+  through a ticket in ServiceNow.
+
+
+  Thank you for your attention,
+
+  Cheers,
+  Cloud Infrastructure Team
+html_body: |
+  Dear Openstack User,
+
+  The instance "{instance}" that's running on your personal project
+  in the Cloud Infrastructure Service has expired on "{expire_date}" and
+  it has been deleted.
+
+  If you have any question or need any help, please don't hesitate to reach out
+  through a ticket in ServiceNow.
+
+
+  Thank you for your attention,
+
+  Cheers,
+  Cloud Infrastructure Team

@@ -1,0 +1,34 @@
+---
+version: '2.0'
+
+mail_template:
+  type: direct
+  description: 'Load a template from the templates folder and replace the placeholders with the values specified'
+  input:
+    - template
+    - replacements
+    - template_folder: 'https://gitlab.cern.ch/cloud-infrastructure/mistral-workflows/raw/master/templates/'
+
+  output:
+    subject: <% $.subject %>
+    body: <% $.body %>
+    html_body: <% $.html_body %>
+
+  tasks:
+    retrieve_template:
+      description: 'Retrieve template from Gitlab'
+      action: std.http
+      input:
+        url: <% $.template_folder %><% $.template %>.yaml
+      publish:
+        template: <% yaml_parse(task(retrieve_template).result.content) %>
+      on-success:
+        process_template
+
+    process_template:
+      description: 'Formats the template with the parameters specified'
+      action: std.noop
+      publish:
+        subject: <% $.template.subject.replace($.replacements) %>
+        body: <% $.template.body.replace($.replacements) %>
+        html_body: <% $.template.html_body.replace($.replacements) %>
