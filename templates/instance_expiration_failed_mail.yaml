@@ -8,8 +8,8 @@ body: |
   Cheers,
   Cloud Infrastructure Team
 html_body: |
-<!doctype html>
-<html>
+  <!doctype html>
+  <html>
   <head>
     <meta name="viewport" content="width=device-width" />
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
@@ -325,4 +325,4 @@ html_body: |
       </tr>
     </table>
   </body>
-</html>
+  </html>
