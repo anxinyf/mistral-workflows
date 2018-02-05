@@ -21,5 +21,18 @@ test_mail:
           <% $.body %>
           Cheers! (:_:)
           -- Thanks, Cloud Infrastructure Team.
+        html_body: |
+          <html>
+            <head>
+              <title> <% $.subject %> </title>
+            </head>
+            <body>
+              Here is the html version<br/><br/>
+              <% $.body %><br/>
+              Cheers! (:_:)<br/><br/>
+              -- Thanks, Cloud Infrastructure Team.
+              <a href="https://openstack.cern.ch/">Visit our website</a>
+            </body>
+          </html>
         from_addr:  <% $.from %>
         smtp_server: <% $.smtp_server %>
