@@ -125,29 +125,15 @@ workflows:
     input:
       - instance
     tasks:
-      retrieve_template:
+      send_mail_template:
         description: 'Retrieve template from Gitlab'
-        workflow: mail_template
+        workflow: send_mail_template
         input:
+          to: <% $.instance.user_id %>@cern.ch
           template: instance_expiration_reminder_mail
           replacements:
             "{instance}": <% $.instance.name %>
             "{expire_date}": <% datetime($.instance.expire_at).format("%d %B %Y") %>
-        publish:
-          subject: <% task(retrieve_template).result.subject %>
-          body: <% task(retrieve_template).result.body %>
-        on-success:
-          - send_mail
-
-      send_mail:
-        description: 'Sends mail to the end user'
-        action: std.email
-        input:
-          to_addrs: ["<% $.instance.user_id %>@cern.ch"]
-          subject: <% $.subject %>
-          body: <% $.body %>
-          from_addr:  'noreply@cern.ch'
-          smtp_server: 'cernmx.cern.ch'
 
   extend_job:
     type: direct
@@ -192,24 +178,13 @@ workflows:
 
       retrieve_template:
         description: 'Retrieve template from Gitlab'
-        action: std.http
+        workflow: mail_template
         input:
-          url: https://gitlab.cern.ch/cloud-infrastructure/mistral-workflows/raw/master/templates/instance_expiration_expired_mail.txt
-        publish:
-          subject: <% format("The instance {instance} has expired", instance => $.instance.name) %>
-          body: <% format($.result.content, instance => $.instance.name, expire_date => datetime($.instance.expire_at).format("%d %B %Y")) %>
-        on-success:
-          - send_mail
-
-      send_mail:
-        description: 'Sends mail to the end user'
-        action: std.email
-        input:
-          to_addrs: ["<% $.instance.user_id %>@cern.ch"]
-          subject: <% $.subject %>
-          body: <% $.body %>
-          from_addr:  'noreply@cern.ch'
-          smtp_server: 'cernmx.cern.ch'
+          to: <% $.instance.user_id %>@cern.ch
+          template: instance_expiration_expired_mail
+          replacements:
+            "{instance}": <% $.instance.name %>
+            "{expire_date}": <% datetime($.instance.expire_at).format("%d %B %Y") %>
 
   expire_job:
     type: direct
@@ -228,52 +203,30 @@ workflows:
         #action: nova.servers_delete server=<% $.instance.id %>
         action: std.noop
         on-success:
-          - retrieve_template
+          - send_mail_template
 
-      retrieve_template:
+      send_mail_template:
         description: 'Retrieve template from Gitlab'
-        action: std.http
+        workflow: send_mail_template
         input:
-          url: https://gitlab.cern.ch/cloud-infrastructure/mistral-workflows/raw/master/templates/instance_expiration_deleted_mail.txt
-        publish:
-          subject: <% format("The instance {instance} has been deleted after its expiration", instance => $.instance.name) %>
-          body: <% format($.result.content, instance => $.instance.name, expire_date => datetime($.instance.expire_at).format("%d %B %Y")) %>
-        on-success:
-          - send_mail
-
-      send_mail:
-        description: 'Sends mail to the end user'
-        action: std.email
-        input:
-          to_addrs: ["<% $.instance.user_id %>@cern.ch"]
-          subject: <% $.subject %>
-          body: <% $.body %>
-          from_addr:  'noreply@cern.ch'
-          smtp_server: 'cernmx.cern.ch'
-
+          to: <% $.instance.user_id %>@cern.ch
+          template: instance_expiration_deleted_mail
+          replacements:
+            "{instance}": <% $.instance.name %>
+            "{expire_date}": <% datetime($.instance.expire_at).format("%d %B %Y") %>
+ 
   failed_expire_job:
     type: direct
     description: This workflow sends a mail to administrators about a failed instance
     input:
       - instance
     tasks:
-      retrieve_template:
+      send_mail_template:
         description: 'Retrieve template from Gitlab'
-        action: std.http
+        workflow: send_mail_template
         input:
-          url: https://gitlab.cern.ch/cloud-infrastructure/mistral-workflows/raw/master/templates/instance_expiration_failed_mail.txt
-        publish:
-          subject: <% format("The instance {instance} cannot be expired. Please check", instance => $.instance.name) %>
-          body: <% format($.result.content, instance => $.instance.name, expire_date => datetime($.instance.expire_at).format("%d %B %Y")) %>
-        on-success:
-          - send_mail
-
-      send_mail:
-        description: 'Sends mail to the end user'
-        action: std.email
-        input:
-          to_addrs: ["cloud-infrastructure-expiration@cern.ch"]
-          subject: <% $.subject %>
-          body: <% $.body %>
-          from_addr:  'noreply@cern.ch'
-          smtp_server: 'cernmx.cern.ch'
+          to: cloud-infrastructure-expiration@cern.ch
+          template: instance_expiration_failed_mail
+          replacements:
+            "{instance}": <% $.instance.name %>
+            "{expire_date}": <% datetime($.instance.expire_at).format("%d %B %Y") %>

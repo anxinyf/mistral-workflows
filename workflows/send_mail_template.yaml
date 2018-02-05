@@ -1,18 +1,17 @@
 ---
 version: '2.0'
 
-mail_template:
+send_mail_template:
   type: direct
-  description: 'Load a template from the templates folder and replace the placeholders with the values specified'
+  description: |
+    Load a template from the templates folder, 
+    replace the placeholders with the values specified
+    and then send the mail to the end user
   input:
+    - to
     - template
     - replacements
     - template_folder: 'https://gitlab.cern.ch/cloud-infrastructure/mistral-workflows/raw/master/templates/'
-
-  output:
-    subject: <% $.subject %>
-    body: <% $.body %>
-    html_body: <% $.html_body %>
 
   tasks:
     retrieve_template:
@@ -23,12 +22,15 @@ mail_template:
       publish:
         template: <% yaml_parse(task(retrieve_template).result.content) %>
       on-success:
-        process_template
+        send_mail
 
-    process_template:
-      description: 'Formats the template with the parameters specified'
-      action: std.noop
-      publish:
+    send_mail:
+      description: 'Sends mail to the end user'
+      action: std.email
+      input:
+        to_addrs: ["<% $.to %>"]
         subject: <% $.template.subject.replace($.replacements) %>
         body: <% $.template.body.replace($.replacements) %>
         html_body: <% $.template.html_body.replace($.replacements) %>
+        from_addr:  'noreply@cern.ch'
+        smtp_server: 'cernmx.cern.ch'
