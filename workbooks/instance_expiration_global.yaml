@@ -48,7 +48,7 @@ workflows:
             all_tenants: 1
             project_id: <% $.project.id %>
         publish:
-          instances: <% task(retrieve_all_instances).result.select(dict(id => $.id, name => $.name, expire_at => $.metadata.get('expire_at', ''), user_id => $.user_id)) %>
+          instances: <% task(retrieve_all_instances).result.select(dict(id => $.id, name => $.name, expire_at => $.metadata.get('expire_at', ''), project_id => project_id, user_id => $.user_id)) %>
         on-success:
           - launch_instance_expirations
   
@@ -134,6 +134,8 @@ workflows:
           replacements:
             "{instance}": <% $.instance.name %>
             "{expire_date}": <% datetime($.instance.expire_at).format("%d %B %Y") %>
+            "{instance_id}": <% $.instance.id %>
+            "{project_id}": <% $.instance.project_id %>
 
   extend_job:
     type: direct
@@ -192,6 +194,8 @@ workflows:
           replacements:
             "{instance}": <% $.instance.name %>
             "{expire_date}": <% datetime($.instance.expire_at).format("%d %B %Y") %>
+            "{instance_id}": <% $.instance.id %>
+            "{project_id}": <% $.instance.project_id %>
 
   expire_job:
     type: direct
@@ -227,6 +231,8 @@ workflows:
           replacements:
             "{instance}": <% $.instance.name %>
             "{expire_date}": <% datetime($.instance.expire_at).format("%d %B %Y") %>
+            "{instance_id}": <% $.instance.id %>
+            "{project_id}": <% $.instance.project_id %>
  
   failed_expire_job:
     type: direct
@@ -243,3 +249,5 @@ workflows:
           replacements:
             "{instance}": <% $.instance.name %>
             "{expire_date}": <% datetime($.instance.expire_at).format("%d %B %Y") %>
+            "{instance_id}": <% $.instance.id %>
+            "{project_id}": <% $.instance.project_id %>
