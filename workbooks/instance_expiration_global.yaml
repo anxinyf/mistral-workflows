@@ -48,7 +48,7 @@ workflows:
             all_tenants: 1
             project_id: <% $.project.id %>
         publish:
-          instances: <% task(retrieve_all_instances).result.select(dict(id => $.id, name => $.name, expire_at => $.metadata.get('expire_at', ''), project_id => project_id, user_id => $.user_id)) %>
+          instances: <% task(retrieve_all_instances).result.select(dict(id => $.id, name => $.name, expire_at => $.metadata.get('expire_at', ''), status => $.status, project_id => $.project_id, user_id => $.user_id)) %>
         on-success:
           - launch_instance_expirations
   
@@ -72,8 +72,15 @@ workflows:
           mail_dates: [30, 15, 7, 5, 3, 2, 1]
           regexp_date: '^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}\.\d{6}$'
           grace_period: 7
+          skip_status: ['ERROR']
         on-success:
-          - check_instance_expiration
+          - check_instance_status
+
+      check_instance_status:
+        description: 'Skip status not supported by the APIs'
+        action: std.noop
+        on-success:
+          - check_instance_expiration: <% not $.instance.status in $.skip_status %>
 
       check_instance_expiration:
         description: 'Checks the instance expiration'
@@ -90,7 +97,7 @@ workflows:
           key: expire_at
           value: <% task(init).published.get('max_expire_date') %>
         publish:
-          instance: <% dict(id => $.instance.id, name => $.instance.name, expire_at => task(init).published.get('max_expire_date'), project_id => project_id, user_id => $.instance.user_id) %>
+          instance: <% dict(id => $.instance.id, name => $.instance.name, expire_at => task(init).published.get('max_expire_date'), project_id => $.instance.project_id, user_id => $.instance.user_id) %>
         on-success:
           - process_instance_expiration
 
