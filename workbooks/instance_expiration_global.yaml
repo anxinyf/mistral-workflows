@@ -71,7 +71,7 @@ workflows:
           max_expire_date: <% now().replace(hour => 0, minute=>0, second=>0, microsecond=>0) + timespan(days=>90) %>
           mail_dates: [30, 15, 7, 5, 3, 2, 1]
           regexp_date: '^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}\.\d{6}$'
-          delete_days: 7
+          grace_period: 7
         on-success:
           - check_instance_expiration
 
@@ -100,8 +100,8 @@ workflows:
         on-success:
           - reminder_instance: <% (datetime($.instance.expire_at) - datetime(task(init).published.today_date)).days in task(init).published.mail_dates %>
           - expire_instance: <% datetime(task(init).published.today_date) = datetime($.instance.expire_at) %>
-          - delete_instance: <% (datetime(task(init).published.today_date) - datetime($.instance.expire_at)).days = task(init).published.delete_days %>
-          - failed_to_expire_instance: <% (datetime(task(init).published.today_date) - datetime($.instance.expire_at)).days > task(init).published.delete_days %>
+          - delete_instance: <% (datetime(task(init).published.today_date) - datetime($.instance.expire_at)).days = task(init).published.grace_period %>
+          - failed_to_expire_instance: <% (datetime(task(init).published.today_date) - datetime($.instance.expire_at)).days > task(init).published.grace_period %>
 
       reminder_instance:
         description: 'Send warning mail about expiration'
@@ -147,7 +147,7 @@ workflows:
         description: 'Retrieves information about the instance'
         action: nova.servers_find id=<% $.instance_id %>
         publish:
-          instance: <% dict(id => task(check_instance).result.id, expire_at => datetime(task(check_instance).result.metadata.expire_at) + timespan(days=>60)) %>
+          instance: <% dict(id => task(check_instance).result.id, expire_at => now().replace(hour => 0, minute=>0, second=>0, microsecond=>0) + timespan(days=>60)) %>
         on-success:
           - set_instance_metadata
 
