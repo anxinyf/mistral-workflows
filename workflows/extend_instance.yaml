@@ -1,0 +1,24 @@
+---
+version: '2.0'
+
+extend_instance:
+  type: direct
+  description: This workflow extends the expiration date
+  input:
+    - instance_id
+  tasks:
+    check_instance:
+      description: 'Retrieves information about the instance'
+      action: nova.servers_find id=<% $.instance_id %>
+      publish:
+        instance: <% dict(id => task(check_instance).result.id, expire_at => now().replace(hour => 0, minute=>0, second=>0, microsecond=>0) + timespan(days=>60)) %>
+      on-success:
+        - set_instance_metadata
+
+    set_instance_metadata:
+      description: 'Sets the expire_at metadata in the instance'
+      action: nova.servers_set_meta_item
+      input: 
+        server: <% task(check_instance).published.instance.id %>
+        key: expire_at
+        value: <% task(check_instance).published.instance.expire_at %>
