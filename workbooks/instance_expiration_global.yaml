@@ -167,12 +167,19 @@ workflows:
         description: 'Expires the instance'
         action: nova.servers_get server=<% $.instance.id %>
         on-success:
-          - pre_expire_instance: <% task(check_instance).result.status = "ACTIVE" %>
+          - pre_expire_instance
 
       pre_expire_instance:
         description: 'Pre expires the instance'
-        #action: nova.servers_stop server=<% $.instance.id %>
-        action: std.noop
+        action: nova.servers_stop server=<% $.instance.id %>
+        on-success:
+          - lock_instance
+        on-error:
+          - lock_instance
+
+      lock_instance:
+        description: 'Locks the instance'
+        action: nova.servers_lock server=<% $.instance.id %>
         on-success:
           - retrieve_template
 
@@ -196,7 +203,13 @@ workflows:
         description: 'Expires the instance'
         action: nova.servers_get server=<% $.instance.id %>
         on-success:
-          - expire_instance: <% task(check_instance).result.status = "ACTIVE" %>
+          - unlock_instance
+
+      unlock_instance:
+        description: 'Unlocks the instance'
+        action: nova.servers_unlock server=<% $.instance.id %>
+        on-success:
+          - expire_instance
 
       expire_instance:
         description: 'Expires the instance'
