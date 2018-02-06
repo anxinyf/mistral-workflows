@@ -69,9 +69,9 @@ workflows:
         publish:
           today_date: <% now().replace(hour => 0, minute=>0, second=>0, microsecond=>0) %>
           max_expire_date: <% now().replace(hour => 0, minute=>0, second=>0, microsecond=>0) + timespan(days=>90) %>
-          mail_dates: [37, 22, 14, 12, 10, 9, 8]
+          mail_dates: [30, 15, 7, 5, 3, 2, 1]
           regexp_date: '^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}\.\d{6}$'
-          pre_expire_date: 7
+          delete_days: 7
         on-success:
           - check_instance_expiration
 
@@ -90,7 +90,7 @@ workflows:
           key: expire_at
           value: <% task(init).published.get('max_expire_date') %>
         publish:
-          instance: <% dict(id => $.instance.id, name => $.instance.name, expire_at => task(init).published.get('max_expire_date'), user_id => $.instance.user_id) %>
+          instance: <% dict(id => $.instance.id, name => $.instance.name, expire_at => task(init).published.get('max_expire_date'), project_id => project_id, user_id => $.instance.user_id) %>
         on-success:
           - process_instance_expiration
 
@@ -98,28 +98,28 @@ workflows:
         description: 'Process instance expiration'
         action: std.noop
         on-success:
-          - send_expiration_mail: <% (datetime($.instance.expire_at) - datetime(task(init).published.today_date)).days in task(init).published.mail_dates %>
-          - pre_expire_instance: <% (datetime($.instance.expire_at) - datetime(task(init).published.today_date)).days = task(init).published.pre_expire_date %>
+          - reminder_instance: <% (datetime($.instance.expire_at) - datetime(task(init).published.today_date)).days in task(init).published.mail_dates %>
           - expire_instance: <% datetime(task(init).published.today_date) = datetime($.instance.expire_at) %>
-          - failed_to_expire_instance: <% datetime(task(init).published.today_date) > datetime($.instance.expire_at) %>
+          - delete_instance: <% (datetime(task(init).published.today_date) - datetime($.instance.expire_at)).days = task(init).published.delete_days %>
+          - failed_to_expire_instance: <% (datetime(task(init).published.today_date) - datetime($.instance.expire_at)).days > task(init).published.delete_days %>
 
-      send_expiration_mail:
+      reminder_instance:
         description: 'Send warning mail about expiration'
-        workflow: instance_expiration_global.mail_job instance=<% $.instance %>
-
-      pre_expire_instance:
-        description: 'Pre expire instance'
-        workflow: instance_expiration_global.pre_expire_job instance=<% $.instance %>
+        workflow: instance_expiration_global.reminder_job instance=<% $.instance %>
 
       expire_instance:
         description: 'Expire instance'
         workflow: instance_expiration_global.expire_job instance=<% $.instance %>
 
+      delete_instance:
+        description: 'Delete instance'
+        workflow: instance_expiration_global.delete_job instance=<% $.instance %>
+
       failed_to_expire_instance:
         description: 'The expiration date has passed notify administrators'
         workflow: instance_expiration_global.failed_expire_job instance=<% $.instance %>
 
-  mail_job:
+  reminder_job:
     type: direct
     description: This workflow sends a reminder to the end user than the machine is going to expire
     input:
@@ -159,7 +159,7 @@ workflows:
           key: expire_at
           value: <% task(check_instance).published.instance.expire_at %>
 
-  pre_expire_job:
+  expire_job:
     type: direct
     description: This workflow forces the expiration of the machine
     input:
@@ -169,9 +169,9 @@ workflows:
         description: 'Expires the instance'
         action: nova.servers_get server=<% $.instance.id %>
         on-success:
-          - pre_expire_instance
+          - expire_instance
 
-      pre_expire_instance:
+      expire_instance:
         description: 'Pre expires the instance'
         action: nova.servers_stop server=<% $.instance.id %>
         on-success:
@@ -197,7 +197,7 @@ workflows:
             "{instance_id}": <% $.instance.id %>
             "{project_id}": <% $.instance.project_id %>
 
-  expire_job:
+  delete_job:
     type: direct
     description: This workflow forces the expiration of the machine
     input:
@@ -213,9 +213,9 @@ workflows:
         description: 'Unlocks the instance'
         action: nova.servers_unlock server=<% $.instance.id %>
         on-success:
-          - expire_instance
+          - delete_instance
 
-      expire_instance:
+      delete_instance:
         description: 'Expires the instance'
         #action: nova.servers_delete server=<% $.instance.id %>
         action: std.noop
