@@ -48,7 +48,7 @@ workflows:
             all_tenants: 1
             project_id: <% $.project.id %>
         publish:
-          instances: <% task(retrieve_all_instances).result.select(dict(id => $.id, name => $.name, expire_at => $.metadata.get('expire_at', ''), status => $.status, project_id => $.project_id, user_id => $.user_id)) %>
+          instances: <% task(retrieve_all_instances).result.select(dict(id => $.id, name => $.name, expire_at => $.metadata.get('expire_at', ''), status => $.status, project_id => $.tenant_id, user_id => $.user_id)) %>
         on-success:
           - launch_instance_expirations
   
