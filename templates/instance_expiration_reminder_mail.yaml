@@ -1,17 +1,11 @@
 subject: 'The instance {instance} is going to expire soon'
 body: |
-  Dear Openstack User,
+  Dear Openstack user,
 
-  The instance "{instance}" that's running on your personal project
-  in the Cloud Infrastructure Service is going to expire on "{expire_date}".
+  The instance "{instance}" will expire on "{expire_date}" and will be deleted shortly after.
 
-  If you don't need this machine anymore, please delete it so other customers can
-  use the resources. If you still need it, you can extend the expiration of the machine
-  in the OpenStack website.
-
-  If you have any question or need any help, please don't hesitate to reach out
-  through a ticket in ServiceNow.
-
+  If you want to extend the expiry date for your instance, please go to the instance view
+  on our website https://openstack.cern.ch, where you can extend it.
 
   Thank you for your attention,
 
@@ -312,12 +306,25 @@ html_body: |
                     <tr>
                       <td>
                         <p>Dear Openstack User,</p><br/>
-                        <p>The instance "{instance}" that's running on your personal project in the Cloud Infrastructure Service is going to expire on "{expire_date}".</p>
+                        <p>The instance "{instance}" will expire on "{expire_date}" and will be deleted shortly after.</p>
                         <br/>
-                        <p>If you don't need this machine anymore, please delete it so other customers can use the resources. If you still need it, you can extend the expiration
-                           of the machine in the OpenStack website</p>
+                        <p>If you want to extend the expiry date for your instance, please click the following button</p>
                         <br>
-                        <p>If you have any question or need any help, please don't hesitate to reach out through a ticket in ServiceNow.</p><br/>
+                        <table border="0" cellpadding="0" cellspacing="0" class="btn btn-primary">
+                          <tbody>
+                            <tr>
+                              <td align="left">
+                                <table border="0" cellpadding="0" cellspacing="0">
+                                  <tbody>
+                                    <tr>
+                                      <td> <a href="https://openstack.cern.ch/auth/switch/{project_id}/?next=%2Fproject%2Finstances%2F{instance_id}%2F" target="_blank">Extend the expiration</a></td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
                         <p>Thank you for your attention,</p>
                         <p>Cheers,<br/>Cloud Infrastructure Team</p>
                       </td>
