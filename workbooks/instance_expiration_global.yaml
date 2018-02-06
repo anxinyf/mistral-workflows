@@ -137,7 +137,7 @@ workflows:
             "{instance_id}": <% $.instance.id %>
             "{project_id}": <% $.instance.project_id %>
 
- expire_job:
+  expire_job:
     type: direct
     description: This workflow forces the expiration of the machine
     input:
