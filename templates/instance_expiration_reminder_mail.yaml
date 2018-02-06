@@ -2,7 +2,7 @@ subject: 'The instance {instance} is going to expire soon'
 body: |
   Dear Openstack user,
 
-  The instance "{instance}" will expire on "{expire_date}" and will be deleted shortly after.
+  The instance "{instance}" will expire on "{expire_date}" and will be removed.
 
   If you want to extend the expiry date for your instance, please go to the instance view
   on our website https://openstack.cern.ch, where you can extend it.
@@ -306,7 +306,7 @@ html_body: |
                     <tr>
                       <td>
                         <p>Dear Openstack User,</p><br/>
-                        <p>The instance "{instance}" will expire on "{expire_date}" and will be deleted shortly after.</p>
+                        <p>The instance "{instance}" will expire on "{expire_date}" and then it will be removed.</p>
                         <br/>
                         <p>If you want to extend the expiry date for your instance, please click on the following button to go to the page allowing you to extend it</mp>
                         <br>
