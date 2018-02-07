@@ -141,6 +141,7 @@ workflows:
           replacements:
             "{instance}": <% $.instance.name %>
             "{expire_date}": <% datetime($.instance.expire_at).format("%d %B %Y") %>
+            "{new_expire_date}": <% (now().replace(hour => 0, minute=>0, second=>0, microsecond=>0) + timespan(days=>60)).format("%d %B %Y") %>
             "{instance_id}": <% $.instance.id %>
             "{project_id}": <% $.instance.project_id %>
 
@@ -179,8 +180,8 @@ workflows:
           replacements:
             "{instance}": <% $.instance.name %>
             "{expire_date}": <% datetime($.instance.expire_at).format("%d %B %Y") %>
-            "{instance_id}": <% $.instance.id %>
-            "{project_id}": <% $.instance.project_id %>
+            "{delete_date}": <% (datetime($.instance.expire_at) + timespan(days=>7)).format("%d %B %Y") %>
+            "{servicedesk_link}": 'https://cern.service-now.com/service-portal/function.do?name=cloud-infrastructure'
 
   delete_job:
     type: direct
@@ -216,8 +217,6 @@ workflows:
           replacements:
             "{instance}": <% $.instance.name %>
             "{expire_date}": <% datetime($.instance.expire_at).format("%d %B %Y") %>
-            "{instance_id}": <% $.instance.id %>
-            "{project_id}": <% $.instance.project_id %>
  
   failed_expire_job:
     type: direct
@@ -233,6 +232,4 @@ workflows:
           template: instance_expiration_failed_mail
           replacements:
             "{instance}": <% $.instance.name %>
-            "{expire_date}": <% datetime($.instance.expire_at).format("%d %B %Y") %>
-            "{instance_id}": <% $.instance.id %>
-            "{project_id}": <% $.instance.project_id %>
+            "{expire_date}": <% datetime($.instance.  expire_at).format("%d %B %Y") %>
