@@ -1,16 +1,22 @@
-subject: 'The instance {instance} is going to expire soon'
+subject: '[Cloud] The Virtual Machine {instance} is going to expire on "{expire_date}"'
 body: |
-  Dear Openstack user,
+  Dear Cloud Infrastructure user,
 
-  The instance "{instance}" will expire on "{expire_date}" and will be removed.
+  The Virtual Machine "{instance}" running in your personal project
+  in the Cloud Infrastructure Service will expired on "{expire_date}".
 
-  If you want to extend the expiry date for your instance, please go to the instance view
-  on our website https://openstack.cern.ch, where you can extend it.
+  If you want to extend the expiration date for your Virtual Machine,
+  please go to the instance view on our website https://openstack.cern.ch
+  and click on "XXX Extension" button. This will extend the expriration
+  date to {new_expire_date}
 
   Thank you for your attention,
 
-  Cheers,
-  Cloud Infrastructure Team
+
+            best regards,  Cloud Infrastructure Team
+
+  PS: this is an automated mail. blablabla XXX
+
 html_body: |
   <!doctype html>
   <html>

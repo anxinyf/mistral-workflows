@@ -1,19 +1,17 @@
-subject: 'The instance {instance} has been deleted after its expiration'
+subject: '[Cloud] The Virtual Machine {instance} has been deleted after its expiration'
 body: |
-  Dear Openstack User,
+  Dear Cloud Infrastructure user,
 
-  The instance "{instance}" that's running on your personal project
-  in the Cloud Infrastructure Service has expired on "{expire_date}" and
-  it has been deleted.
-
-  If you have any question or need any help, please don't hesitate to reach out
-  through a ticket in ServiceNow.
-
+  The Virtual Machine "{instance}" running in your personal project
+  in the Cloud Infrastructure Service has expired on "{expire_date}",
+  and has now been deleted.
 
   Thank you for your attention,
 
-  Cheers,
-  Cloud Infrastructure Team
+            best regards,  Cloud Infrastructure Team
+
+  PS: this is an automated mail. blablabla XXX
+
 html_body: |
   <!doctype html>
   <html>
