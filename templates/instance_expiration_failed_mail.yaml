@@ -17,7 +17,7 @@ html_body: |
   <head>
     <meta name="viewport" content="width=device-width" />
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>The instance {instance} cannot be expired. Please check</title>
+    <title>[Cloud] The Virtual Machine {instance} cannot be expired. Please check</title>
     <style>
       /* -------------------------------------
           GLOBAL RESETS
