@@ -14,7 +14,7 @@ body: |
 
             best regards,  Cloud Infrastructure Team
 
-  PS: this is an automated mail. blablabla XXX
+  PS: This is an automatically generated mail - please do not reply to it.
 
 html_body: |
   <!doctype html>
@@ -301,7 +301,7 @@ html_body: |
           <div class="content">
 
             <!-- START CENTERED WHITE CONTAINER -->
-            <span class="preheader">The instance {instance} has expired</span>
+            <span class="preheader">[Cloud] The Virtual Machine {instance} has expired</span>
             <table class="main">
 
               <!-- START MAIN CONTENT AREA -->
@@ -310,12 +310,18 @@ html_body: |
                   <table border="0" cellpadding="0" cellspacing="0">
                     <tr>
                       <td>
-                        <p>Dear Openstack User,</p><br/>
-                        <p>The instance "{instance}" that's running on your personal project in the Cloud Infrastructure Service has expired on "{expire_date}".</p>
+                        <p>Dear Cloud Infrastructure user,</p>
+                        <br/>
+                        <p>The Virtual Machine "{instance}" running in your personal project in the Cloud Infrastructure Service has expired on {expire_date}. It will be permanently deleted on {delete_date}.</p>
                         <br>
-                        <p>If you have any question or need any help, please don't hesitate to reach out through a ticket in ServiceNow.</p><br/>
+                        <p>If you have any question or need any help, please open a ticket to the <a href="{servicedesk_link}" target="_blank">Service Desk</a></p>
+                        <br>
+                        <br>
                         <p>Thank you for your attention,</p>
-                        <p>Cheers,<br/>Cloud Infrastructure Team</p>
+                        <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;best regards, Cloud Infrastructure Team</p>
+                        <br/>
+                        <br/>
+                        <p>PS: This is an automatically generated mail - please do not reply to it.</p>
                       </td>
                     </tr>
                   </table>

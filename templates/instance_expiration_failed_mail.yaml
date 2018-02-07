@@ -1,12 +1,16 @@
-subject: 'The instance {instance} cannot be expired. Please check'
+subject: '[Cloud] The Virtual Machine {instance} cannot be expired. Please check'
 body: |
-  Dear Openstack Administrator,
+  Dear Cloud Infrastructure administrator,
 
-  The instance "{instance}" was configured to expire on "{expire_date}" and
+  The instance {instance} was configured to expire on {expire_date} and
   this date has passed. Please check the instance.
 
-  Cheers,
-  Cloud Infrastructure Team
+  Thank you for your attention,
+
+            best regards,  Cloud Infrastructure Team
+
+  PS: This is an automatically generated mail - please do not reply to it.
+
 html_body: |
   <!doctype html>
   <html>
@@ -292,7 +296,7 @@ html_body: |
           <div class="content">
 
             <!-- START CENTERED WHITE CONTAINER -->
-            <span class="preheader">The instance {instance} cannot be expired. Please check</span>
+            <span class="preheader">[Cloud] The Virtual Machine {instance} cannot be expired. Please check</span>
             <table class="main">
 
               <!-- START MAIN CONTENT AREA -->
@@ -301,10 +305,16 @@ html_body: |
                   <table border="0" cellpadding="0" cellspacing="0">
                     <tr>
                       <td>
-                        <p>Dear Openstack Administrator,</p><br/>
-                        <p>The instance "{instance}" was configured to expire on "{expire_date}" and this date has passed. Please check the instance.</p>
+                        <p>Dear Cloud Infrastructure administrator,</p>
                         <br/>
-                        <p>Cheers,<br/>Cloud Infrastructure Team</p>
+                        <p>The instance {instance} was configured to expire on {expire_date} and this date has passed. Please check the instance.</p>
+                        <br>
+                        <br>
+                        <p>Thank you for your attention,</p>
+                        <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;best regards, Cloud Infrastructure Team</p>
+                        <br/>
+                        <br/>
+                        <p>PS: This is an automatically generated mail - please do not reply to it.</p>
                       </td>
                     </tr>
                   </table>
