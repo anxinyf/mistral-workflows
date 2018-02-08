@@ -83,7 +83,7 @@ workflows:
         action: keystone.endpoint_filter_check_endpoint_group_in_project
         input: 
           project: <% $.project_id %>
-          endpoint_group: 0cf3334a82854c8e85ea4428c283dfca
+          endpoint_group: 0cf3334a82854c8e85ea4428c283dfc4
         on-error:
           - add_base_endpoint_group
 
@@ -91,7 +91,7 @@ workflows:
         action: keystone.endpoint_filter_add_endpoint_group_to_project
         input: 
           project: <% $.project_id %>
-          endpoint_group: 0cf3334a82854c8e85ea4428c283dfca
+          endpoint_group: 0cf3334a82854c8e85ea4428c283dfc4
 
       get_user_id:
         action: keystone.users_find
