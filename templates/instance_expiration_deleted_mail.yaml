@@ -1,5 +1,5 @@
 subject: '[Cloud] The Virtual Machine {instance} has been deleted after its expiration'
-body: |
+body: >-
   Dear Cloud Infrastructure user,
 
   The Virtual Machine {instance} from your project {project_name} has now been deleted.
@@ -10,7 +10,7 @@ body: |
   Best regards,
     Cloud Infrastructure Team
 
-  PS: This is an automatically generated mail - please do not reply to it.
+  P.S. This is an automatically generated mail - please do not reply to it.
 
 html_body: |
   <!doctype html>
