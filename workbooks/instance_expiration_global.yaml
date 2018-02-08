@@ -25,7 +25,7 @@ workflows:
         action: keystone.projects_list domain=default
         keep-result: false
         publish:
-          projects: <% task(retrieve_all_projects).result.select(dict(id => $.id, type => $.get('type','none'),expire => $.get('expire','off'))).where($.type='personal').where($.expire='on') %>
+          projects: <% task(retrieve_all_projects).result.select(dict(id => $.id, name => $.name, type => $.get('type','none'),expire => $.get('expire','off'))).where($.type='personal').where($.expire='on') %>
         on-success:
           - launch_project_expirations
 
@@ -48,20 +48,21 @@ workflows:
             all_tenants: 1
             project_id: <% $.project.id %>
         publish:
-          instances: <% task(retrieve_all_instances).result.select(dict(id => $.id, name => $.name, expire_at => $.metadata.get('expire_at', ''), status => $.status, project_id => $.tenant_id, user_id => $.user_id)) %>
+          instances: <% task(retrieve_all_instances).result.select(dict(id => $.id, name => $.name, expire_at => $.metadata.get('expire_at', ''), status => $.status, user_id => $.user_id)) %>
         on-success:
           - launch_instance_expirations
   
       launch_instance_expirations:
         description: 'Reviews the expiration dates of the instances'
         with-items: instance in <% $.instances %>
-        workflow: instance_expiration_global.daily_instance_expiration instance=<% $.instance %>
+        workflow: instance_expiration_global.daily_instance_expiration instance=<% $.instance %> project=<% $.project %>
 
   daily_instance_expiration:
     type: direct
     description: This workflow checks the expiration of machines and reacts accordingly.
     input:
       - instance
+      - project
     tasks:
       init:
         description: 'Initializes de variables used in the workflow'
@@ -97,7 +98,7 @@ workflows:
           key: expire_at
           value: <% task(init).published.get('max_expire_date') %>
         publish:
-          instance: <% dict(id => $.instance.id, name => $.instance.name, expire_at => task(init).published.get('max_expire_date'), project_id => $.instance.project_id, user_id => $.instance.user_id) %>
+          instance: <% dict(id => $.instance.id, name => $.instance.name, expire_at => task(init).published.get('max_expire_date'), user_id => $.instance.user_id) %>
         on-success:
           - process_instance_expiration
 
@@ -112,25 +113,26 @@ workflows:
 
       reminder_instance:
         description: 'Send warning mail about expiration'
-        workflow: instance_expiration_global.reminder_job instance=<% $.instance %>
+        workflow: instance_expiration_global.reminder_job instance=<% $.instance %> project=<% $.project %>
 
       expire_instance:
         description: 'Expire instance'
-        workflow: instance_expiration_global.expire_job instance=<% $.instance %>
+        workflow: instance_expiration_global.expire_job instance=<% $.instance %> project=<% $.project %>
 
       delete_instance:
         description: 'Delete instance'
-        workflow: instance_expiration_global.delete_job instance=<% $.instance %>
+        workflow: instance_expiration_global.delete_job instance=<% $.instance %> project=<% $.project %>
 
       failed_to_expire_instance:
         description: 'The expiration date has passed notify administrators'
-        workflow: instance_expiration_global.failed_expire_job instance=<% $.instance %>
+        workflow: instance_expiration_global.failed_expire_job instance=<% $.instance %> project=<% $.project %>
 
   reminder_job:
     type: direct
     description: This workflow sends a reminder to the end user than the machine is going to expire
     input:
       - instance
+      - project
     tasks:
       send_mail_template:
         description: 'Retrieve template from Gitlab'
@@ -143,13 +145,16 @@ workflows:
             "{expire_date}": <% datetime($.instance.expire_at).format("%d %B %Y") %>
             "{new_expire_date}": <% (now().replace(hour => 0, minute=>0, second=>0, microsecond=>0) + timespan(days=>60)).format("%d %B %Y") %>
             "{instance_id}": <% $.instance.id %>
-            "{project_id}": <% $.instance.project_id %>
+            "{project_id}": <% $.project.id %>
+            "{project_name}": <% $.project.name %>
+            "{servicedesk_link}": 'https://cern.service-now.com/service-portal/function.do?name=cloud-infrastructure'
 
   expire_job:
     type: direct
     description: This workflow forces the expiration of the machine
     input:
       - instance
+      - project
     tasks:
       check_instance:
         description: 'Expires the instance'
@@ -181,6 +186,7 @@ workflows:
             "{instance}": <% $.instance.name %>
             "{expire_date}": <% datetime($.instance.expire_at).format("%d %B %Y") %>
             "{delete_date}": <% (datetime($.instance.expire_at) + timespan(days=>7)).format("%d %B %Y") %>
+            "{project_name}": <% $.project.name %>
             "{servicedesk_link}": 'https://cern.service-now.com/service-portal/function.do?name=cloud-infrastructure'
 
   delete_job:
@@ -188,6 +194,7 @@ workflows:
     description: This workflow forces the expiration of the machine
     input:
       - instance
+      - project
     tasks:
       check_instance:
         description: 'Expires the instance'
@@ -216,13 +223,15 @@ workflows:
           template: instance_expiration_deleted_mail
           replacements:
             "{instance}": <% $.instance.name %>
-            "{expire_date}": <% datetime($.instance.expire_at).format("%d %B %Y") %>
+            "{project_name}": <% $.project.name %>
+            "{servicedesk_link}": 'https://cern.service-now.com/service-portal/function.do?name=cloud-infrastructure'
  
   failed_expire_job:
     type: direct
     description: This workflow sends a mail to administrators about a failed instance
     input:
       - instance
+      - project
     tasks:
       send_mail_template:
         description: 'Retrieve template from Gitlab'
@@ -232,4 +241,4 @@ workflows:
           template: instance_expiration_failed_mail
           replacements:
             "{instance}": <% $.instance.name %>
-            "{expire_date}": <% datetime($.instance.  expire_at).format("%d %B %Y") %>
+            "{expire_date}": <% datetime($.instance.expire_at).format("%d %B %Y") %>

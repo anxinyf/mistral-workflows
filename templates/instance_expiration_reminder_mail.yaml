@@ -2,18 +2,22 @@ subject: '[Cloud] The Virtual Machine {instance} is going to expire on {expire_d
 body: |
   Dear Cloud Infrastructure user,
 
-  The Virtual Machine {instance} running in your personal project
+  The Virtual Machine {instance} from the project {project_name}
   in the Cloud Infrastructure Service will expire on {expire_date}.
+
+  If you don't need this instance any longer, you don't need to do anything
+  and the instance will be deleted automatically.
 
   If you want to extend the expiration date for your Virtual Machine,
   please go to the instance view on our website https://openstack.cern.ch
   and click on "Extend Expiration" button. This will extend the expiration
   date to {new_expire_date}.
 
-  Thank you for your attention,
+  If you have any question concerning this, please do not hesitate to open a ticket
+  to the Service Desk {servicedesk_link}.
 
-
-            best regards,  Cloud Infrastructure Team
+  Best regards,
+    Cloud Infrastructure Team
 
   PS: This is an automatically generated mail - please do not reply to it.
 
@@ -313,7 +317,9 @@ This is an automatically generated mail - please do not reply to it          PRE
                       <td>
                         <p>Dear Cloud Infrastructure user,</p>
                         <br/>
-                        <p> The Virtual Machine {instance} running in your personal project in the Cloud Infrastructure Service will expire on {expire_date}.</p>
+                        <p>The Virtual Machine {instance} from the project {project_name} in the Cloud Infrastructure Service will expire on {expire_date}.</p>
+                        <br/>
+                        <p>If you don't need this instance any longer, you don't need to do anything and the instance will be deleted automatically.</p>
                         <br/>
                         <p>If you want to extend the expiration date for your Virtual Machine, please click on the following button to go to the instance view of your Virtual Machine and then click on "Extend Expiration" button.
                            This will extend the expiration date to {new_expire_date} </p>
@@ -325,7 +331,7 @@ This is an automatically generated mail - please do not reply to it          PRE
                                 <table border="0" cellpadding="0" cellspacing="0">
                                   <tbody>
                                     <tr>
-                                      <td> <a href="https://openstack.cern.ch/auth/switch/{project_id}/?next=%2Fproject%2Finstances%2F{instance_id}%2F" target="_blank">Extend the expiration</a></td>
+                                      <td> <a href="https://openstack.cern.ch/auth/switch/{project_id}/?next=%2Fproject%2Finstances%2F{instance_id}%2F" target="_blank">Prolong the expiration until {new_expire_date}</a></td>
                                     </tr>
                                   </tbody>
                                 </table>
@@ -334,10 +340,10 @@ This is an automatically generated mail - please do not reply to it          PRE
                           </tbody>
                         </table>
                         <br/>
-                        <br/>
-                        <p>Thank you for your attention,</p>
-                        <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;best regards, Cloud Infrastructure Team</p>
-                        <br/>
+                        <p>If you have any question concerning this, please do not hesitate to open a ticket to the <a href="{servicedesk_link}" target="_blank">Service Desk</a></p>
+                        <br>
+                        <p>Best regards,</p>
+                        <p>&nbsp;&nbsp;Cloud Infrastructure Team</p><br/>
                         <br/>
                         <p>PS: This is an automatically generated mail - please do not reply to it.</p>
                       </td>

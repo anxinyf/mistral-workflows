@@ -2,17 +2,15 @@ subject: '[Cloud] The Virtual Machine {instance} has expired'
 body: |
   Dear Cloud Infrastructure user,
 
-  The Virtual Machine "{instance}" running in your personal project
-  in the Cloud Infrastructure Service has expired on "{expire_date}".
-  It will be permanently deleted on "{delete_date}".
+  The Virtual Machine {instance} from your project {project_name}
+  in the Cloud Infrastructure Service has expired on {expire_date}.
+  It will be permanently deleted on {delete_date}.
 
   If you have any question or need any help, please open a ticket
   to the Service Desk {servicedesk_link}.
 
-
-  Thank you for your attention,
-
-            best regards,  Cloud Infrastructure Team
+  Best regards,
+    Cloud Infrastructure Team
 
   PS: This is an automatically generated mail - please do not reply to it.
 
@@ -312,14 +310,12 @@ html_body: |
                       <td>
                         <p>Dear Cloud Infrastructure user,</p>
                         <br/>
-                        <p>The Virtual Machine "{instance}" running in your personal project in the Cloud Infrastructure Service has expired on {expire_date}. It will be permanently deleted on {delete_date}.</p>
+                        <p>The Virtual Machine {instance} from your project {project_name} in the Cloud Infrastructure Service has expired on {expire_date}. It will be permanently deleted on {delete_date}.</p>
                         <br>
-                        <p>If you have any question or need any help, please open a ticket to the <a href="{servicedesk_link}" target="_blank">Service Desk</a></p>
+                        <p>If you have any question concerning this, please do not hesitate to open a ticket to the <a href="{servicedesk_link}" target="_blank">Service Desk</a></p>
                         <br>
-                        <br>
-                        <p>Thank you for your attention,</p>
-                        <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;best regards, Cloud Infrastructure Team</p>
-                        <br/>
+                        <p>Best regards,</p>
+                        <p>&nbsp;&nbsp;Cloud Infrastructure Team</p><br/>
                         <br/>
                         <p>PS: This is an automatically generated mail - please do not reply to it.</p>
                       </td>
