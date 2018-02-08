@@ -147,7 +147,7 @@ workflows:
             "{instance_id}": <% $.instance.id %>
             "{project_id}": <% $.project.id %>
             "{project_name}": <% $.project.name %>
-            "{servicedesk_link}": 'https://cern.service-now.com/service-portal/function.do?name=cloud-infrastructure'
+            "{servicedesk_link}": 'https://cern.service-now.com/service-portal/report-ticket.do?name=request&fe=cloud-infrastructure'
 
   expire_job:
     type: direct
@@ -187,7 +187,7 @@ workflows:
             "{expire_date}": <% datetime($.instance.expire_at).format("%d %B %Y") %>
             "{delete_date}": <% (datetime($.instance.expire_at) + timespan(days=>7)).format("%d %B %Y") %>
             "{project_name}": <% $.project.name %>
-            "{servicedesk_link}": 'https://cern.service-now.com/service-portal/function.do?name=cloud-infrastructure'
+            "{servicedesk_link}": 'https://cern.service-now.com/service-portal/report-ticket.do?name=request&fe=cloud-infrastructure'
 
   delete_job:
     type: direct
@@ -224,7 +224,7 @@ workflows:
           replacements:
             "{instance}": <% $.instance.name %>
             "{project_name}": <% $.project.name %>
-            "{servicedesk_link}": 'https://cern.service-now.com/service-portal/function.do?name=cloud-infrastructure'
+            "{servicedesk_link}": 'https://cern.service-now.com/service-portal/report-ticket.do?name=request&fe=cloud-infrastructure'
  
   failed_expire_job:
     type: direct
