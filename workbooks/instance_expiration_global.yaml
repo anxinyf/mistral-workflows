@@ -172,7 +172,7 @@ workflows:
 
       retrieve_template:
         description: 'Retrieve template from Gitlab'
-        workflow: mail_template
+        workflow: send_mail_template
         input:
           to: <% $.instance.user_id %>@cern.ch
           template: instance_expiration_expired_mail
