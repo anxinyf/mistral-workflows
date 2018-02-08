@@ -271,7 +271,7 @@ html_body: |
           width: auto !important; }}
 
       /* -------------------------------------
-This is an automatically generated mail - please do not reply to it          PRESERVE THESE STYLES IN THE HEAD
+         PRESERVE THESE STYLES IN THE HEAD
       ------------------------------------- */
       @media all {
         .ExternalClass {
