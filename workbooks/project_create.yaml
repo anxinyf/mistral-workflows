@@ -28,7 +28,7 @@ workflows:
           name: <% $.name %>
           domain: default
           description: <% $.description %>
-          enabled: <% $.enabled %>
+          enabled: False
           owner: <% $.owner %>
         publish:
           project_id: <% task(identity).result.id %>
@@ -39,6 +39,14 @@ workflows:
         workflow: service_initialize.base
         input:
           id: <% $.project_id %>
+        on-success:
+          - enable_project
+
+      enable_project:
+        action: keystone.projects_update
+        input:
+          project: <% $.id %>
+          enabled: <% $.enabled %>
 
   identity:
     description: Creates a Project, assigns the ownership/membership
