@@ -22,6 +22,8 @@ workflows:
         workflow: mistral
         input:
           id: <% $.id %>
+        on-success:
+          - nova
 
       magnum:
         workflow: magnum
