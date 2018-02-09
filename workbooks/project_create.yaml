@@ -146,7 +146,7 @@ workflows:
           project: <% $.project_id %>
 
       set_fim_properties:
-        action: keystone.projects_update project=<% $.project_id %> fim-lock=true fim-skip=true
+        action: keystone.projects_update project=<% $.project_id %> fim-lock='True' fim-skip='True'
 
       set_personal_project_properties:
         action: keystone.projects_update project=<% $.project_id %> accounting-group='personal' type='personal' network='GPN'
