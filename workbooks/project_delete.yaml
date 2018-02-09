@@ -17,7 +17,7 @@ workflows:
         publish:
           fim_lock: <% task(check_identity).result.fim_lock %>
         on-success:
-          - fail: <% $.fim_lock != null and $.fim_lock = true %>
+          - fail: <% $.fim_lock != null and $.fim_lock = 'True' %>
           - service_delete: <% $.fim_lock = null %>
       
       service_delete:
