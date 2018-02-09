@@ -95,6 +95,12 @@ workflows:
         publish:
           server_ids: <% task(get_vms).result.id %>
         on-success:
+          - unlock_vms
+      # Unlock the VMs
+      unlock_vms:
+        with-items: server_id in <% $.server_ids %>
+        action: nova.servers_unlock server=<% $.server_id %>
+        on-success:
           - delete_vms
       # Delete the VMs
       delete_vms:
@@ -112,6 +118,23 @@ workflows:
     input:
       - id
     tasks:
+      # Get all volumes snapshots in the project
+      get_snapshots:
+        action: cinder.volume_snapshots_list
+        input:
+          search_opts:
+            all_tenants: true
+            project_id: <% $.id %>
+        publish:
+          snapshot_ids: <% task(get_snapshots).result.id %>
+        on-success:
+          - delete_snapshots
+      # Delete the volume snapshots
+      delete_snapshots:
+        with-items: snapshot_id in <% $.snapshot_ids %>
+        action: cinder.volume_snapshots_delete snapshot=<% $.snapshot_id %>
+        on-success:
+          - quota_cleanup
       # Get all volumes in the project
       get_volumes:
         action: cinder.volumes_list
@@ -131,6 +154,7 @@ workflows:
           - quota_cleanup
       # Cleanup quota entries in cinder
       quota_cleanup:
+        join: all
         action: cinder.quotas_delete tenant_id=<% $.id %>
 
   glance:
