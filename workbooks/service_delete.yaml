@@ -106,6 +106,7 @@ workflows:
       delete_vms:
         with-items: server_id in <% $.server_ids %>
         action: nova.servers_delete server=<% $.server_id %>
+        retry: count=18 delay=10
         on-success:
           - quota_cleanup
       # Cleanup quota entries in nova
@@ -133,6 +134,7 @@ workflows:
       delete_snapshots:
         with-items: snapshot_id in <% $.snapshot_ids %>
         action: cinder.volume_snapshots_delete snapshot=<% $.snapshot_id %>
+        retry: count=18 delay=10
         on-success:
           - quota_cleanup
       # Get all volumes in the project
@@ -150,6 +152,7 @@ workflows:
       delete_volumes:
         with-items: volume_id in <% $.volume_ids %>
         action: cinder.volumes_delete volume=<% $.volume_id %>
+        retry: count=18 delay=10
         on-success:
           - quota_cleanup
       # Cleanup quota entries in cinder
