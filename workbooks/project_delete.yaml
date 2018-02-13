@@ -16,16 +16,21 @@ workflows:
           project: <% $.id %>
         publish:
           fim_lock: <% task(project_get).result.get("fim-lock") %>
+          found: True
+        publish-on-error:
+          found: False
         on-success:
           - fail: <% $.fim_lock != null and $.fim_lock = 'True' %>
           - service_delete: <% $.fim_lock = null or $.fim_lock = 'False' %>
+        on-error:
+          - service_delete
       
       service_delete:
         workflow: service_delete.init
         input:
           id: <% $.id %>
         on-success:
-          - delete_project
+          - delete_project: <% $.found %>
 
       delete_project:
         action: keystone.projects_delete

@@ -10,14 +10,6 @@ workflows:
     input:
       - id
     tasks:
-      project_exists:
-        action: keystone.projects_get project=<% $.id %>
-        publish:
-          project_id: <% task(project_exists).result.id %>
-        on-success:
-          - mistral
-          - magnum
-
       mistral:
         workflow: mistral
         input:
