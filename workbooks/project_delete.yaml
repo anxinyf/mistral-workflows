@@ -10,49 +10,23 @@ workflows:
     input:
       - id
     tasks:
-      check_identity:
-        workflow: check_identity
+      project_get:
+        action: keystone.projects_get
         input:
           id: <% $.id %>
         publish:
-          fim_lock: <% task(check_identity).result.fim_lock %>
+          fim_lock: <% task(project_get).result.get("fim-lock") %>
         on-success:
           - fail: <% $.fim_lock != null and $.fim_lock = 'True' %>
-          - service_delete: <% $.fim_lock = null %>
+          - service_delete: <% $.fim_lock = null or $.fim_lock = 'False' %>
       
       service_delete:
         workflow: service_delete.init
         input:
           id: <% $.id %>
         on-success:
-          - identity
+          - delete_project
 
-      identity:
-        workflow: identity
-        input:
-          id: <% $.id %>
-
-  check_identity:
-    description: Checks if the project can be deleted
-    type: direct
-    input:
-      - id
-    output:
-      fim_lock: <% $.fim_lock %>
-    tasks:
-      retrieve_project:
-        action: keystone.projects_get
-        input:
-          project: <% $.id %>
-        publish:
-          fim_lock: <% task(retrieve_project).result.get("fim-lock") %>
-
-  identity:
-    description: Deletes all resources of a project on the identity service
-    type: direct
-    input:
-      - id
-    tasks:
       delete_project:
         action: keystone.projects_delete
         input:
