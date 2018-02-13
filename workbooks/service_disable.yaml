@@ -23,7 +23,7 @@ workflows:
           - succeed
 
       remove_service_endpoint_group:
-        action: keystone.endpoint_filter.delete_endpoint_group_from_project
+        action: keystone.endpoint_filter_delete_endpoint_group_from_project
         input: 
           project: <% $.id %>
           endpoint_group: <% $.endpoint_group %>
