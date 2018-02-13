@@ -38,7 +38,7 @@ workflows:
         input:
           id: <% $.id %>
         on-success:
-          identity_disable: <% $.current_enabled = true and $.enabled = false %>
+          - identity_disable: <% $.current_enabled = true and $.enabled = false %>
 
       identity_update:
         workflow: identity_update
