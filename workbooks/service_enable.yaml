@@ -15,7 +15,7 @@ workflows:
       check_endpoint_group:
         action: keystone.endpoint_filter_check_endpoint_group_in_project
         input: 
-          project: <% $.project_id %>
+          project: <% $.id %>
           endpoint_group: <% $.endpoint_group %>
         on-error:
           - add_endpoint_group
@@ -23,7 +23,7 @@ workflows:
       add_endpoint_group:
         action: keystone.endpoint_filter_add_endpoint_group_to_project
         input: 
-          project: <% $.project_id %>
+          project: <% $.id %>
           endpoint_group: <% $.endpoint_group %>
 
   manila:
