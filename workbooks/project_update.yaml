@@ -24,7 +24,7 @@ workflows:
       project_get:
         action: keystone.projects_get
         input:
-          -project: <% $.id %>
+          project: <% $.id %>
         publish:
           fim_skip: <% task(project_get).result.get("fim-skip") %>
           current_enabled: <% task(project_get).result.enabled %>
@@ -63,13 +63,13 @@ workflows:
       - description
       - owner
     tasks:
-      init:
+      project_get:
         action: keystone.projects_get
         input:
           project: <% $.id %>
         on-success:
-          - update_project_name: <% $.name != null and not $.name.isEmpty() and $.name != task(project_get).result.name %>
-          - update_project_description: <% $.description != null and not $.description.isEmpty() and $.description != task(project_get).result.description %>
+          - update_project_name: <% not $.name.isEmpty() and $.name != task(project_get).result.name %>
+          - update_project_description: <% not $.description.isEmpty() and $.description != task(project_get).result.description %>
           - get_project_owner
 
       update_project_name:
@@ -85,21 +85,21 @@ workflows:
           description: <% $.description %>
 
       get_project_owner:
-        action: keystone.roles_grant
+        action: keystone.role_assignments_list
         input:
           role: c93214972afe4fccbdb78fea78c362cd
           project: <% $.id %>
         publish:
-          owners: <% task(get_project_owner).result %>
+          owners: <% task(get_project_owner).result.user.id %>
         on-success:
           - remove_previous_owner: <% not ($.owner in $.owners)  %>
 
       remove_previous_owner:
-        with-items: old_owner_id in <% $.owners %>
+        with-items: old_owner in <% $.owners %>
         action: keystone.roles_revoke
         input:
           role: c93214972afe4fccbdb78fea78c362cd
-          user: <% $.old_owner_id %>
+          user: <% $.old_owner %>
           project: <% $.id %>
         on-success:
           - set_project_owner
@@ -108,5 +108,5 @@ workflows:
         action: keystone.roles_grant
         input:
           role: c93214972afe4fccbdb78fea78c362cd
-          user: <% $.owner_id %>
+          user: <% $.owner %>
           project: <% $.id %>

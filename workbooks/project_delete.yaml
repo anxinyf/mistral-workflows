@@ -13,7 +13,7 @@ workflows:
       project_get:
         action: keystone.projects_get
         input:
-          id: <% $.id %>
+          project: <% $.id %>
         publish:
           fim_lock: <% task(project_get).result.get("fim-lock") %>
         on-success:
