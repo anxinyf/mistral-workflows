@@ -222,16 +222,19 @@ workflows:
     tasks:
       # TODO(jcastro) Add missing event trigger and cron trigger deletion
       # Get all workflows in the project
+      get_workflows:
+        action: mistral.workflows_list project_id=<% $.id %>
+        publish:
+          workflow_ids: <% task(get_workflows).result.id %>
+        on-success:
+          - delete_workflows
+        on-error:
+          # The service returns not found error if the filter does not match
+          - empty_task
+      # Delete all workflows
+      delete_workflows:
+        with-items: workflow_id in <% $.workflow_ids %>
+        action: mistral.workflows_delete identifier=<% $.workflow_id %>
+        retry: count=18 delay=10
       empty_task:
         action: std.noop
-      #get_workflows:
-      #  action: mistral.workflows_list project_id=<% $.id %>
-      #  publish:
-      #    workflow_ids: <% task(get_workflows).result.id %>
-      #  on-success:
-      #    - delete_workflows
-      # Delete all workflows
-      #delete_workflows:
-      #  with-items: workflow_id in <% $.workflow_ids %>
-      #  action: mistral.workflow_delete identifier=<% $.workflow_id %>
-      #  retry: count=18 delay=10
