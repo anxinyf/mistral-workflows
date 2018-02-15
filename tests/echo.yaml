@@ -1,0 +1,19 @@
+---
+version: '2.0'
+
+echo:
+  type: direct
+  description: 'Echo Workflow'
+  input:
+    - data
+
+  output:
+    data: <% $.data %>
+
+  tasks:
+    echo:
+      action: std.echo
+      input:
+        output: <% $.data %>
+      publish:
+        data: <% task(echo).result %>
