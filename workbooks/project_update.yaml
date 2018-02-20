@@ -110,3 +110,12 @@ workflows:
           role: c93214972afe4fccbdb78fea78c362cd
           user: <% $.owner %>
           project: <% $.id %>
+        on-success:
+          - service_owner_change
+
+      service_owner_change:
+        workflow: service_owner_change.init
+        input:
+          id: <% $.id %>
+          old_owner: $.old_owner
+          new_owner: <% $.owner %>
