@@ -117,5 +117,5 @@ workflows:
         workflow: service_owner_change.init
         input:
           id: <% $.id %>
-          old_owner: $.old_owner
+          old_owner: <% $.old_owner %>
           new_owner: <% $.owner %>
