@@ -158,8 +158,30 @@ workflows:
     input:
       - id
     tasks:
-      empty_task:
-        action: std.noop
+      # Get all images in the project
+      get_images:
+        action: glance.images_list
+        input:
+          filters:
+            owner: <% $.id %>
+        publish:
+          image_ids: <% task(get_images).result.where($.visibility='private').id %>
+        on-success:
+          - unprotect_images
+
+      unprotect_images:
+        with-items: image_id in <% $.image_ids %>
+        action: glance.images_update image_id=<% $.image_id %> protected=false
+        on-success:
+          - delete_images
+        on-error:
+          - delete_images
+
+      delete_images:
+        join: all
+        with-items: image_id in <% $.image_ids %>
+        action: glance.images_delete image_id=<% $.image_id %>
+        retry: count=18 delay=10
 
   manila:
     description: Deletes all resources of a project on the fileshare service
