@@ -79,28 +79,45 @@ workflows:
           id: <% $.id %>
 
   nova:
-    description: Updates the status of resources of a project on the compute service
+    description: Disables the status of resources of a project on the compute service
     type: direct
     input:
       - id
     tasks:
-      stop_instances_get_vms:
+      get_vms:
         action: nova.servers_list
         input:
           search_opts:
             all_tenants: true
             project_id: <% $.id %>
         publish:
-          server_ids: <% task(stop_instances_get_vms).result.id %>
+          instances: <% task(get_vms).result %>
         on-success:
           - stop_instances
 
       stop_instances:
-        with-items: server_id in <% $.server_ids %>
-        action: nova.servers_stop server=<% $.server_id %>
+        with-items: instance in <% $.instances %>
+        workflow: nova_stop_instance instance=<% $.instance %>
+
+  nova_stop_instance:
+    type: direct
+    description: Disables the status of resources on an instance on the compute service
+    input:
+      - instance
+      - skip_status: ['ERROR', 'SHUTOFF']
+    tasks:
+      check_instance_status:
+        description: 'Skip status not supported by the APIs'
+        action: std.noop
+        on-success:
+          - stop_instance: <% not $.instance.status in $.skip_status %>
+
+      stop_instance:
+        description: 'Stops the machine'
+        action: nova.servers_stop server=<% $.instance.id %>
 
   cinder:
-    description: Updates the status of resources of a project on the blockstorage service
+    description: Disables the status of resources of a project on the blockstorage service
     type: direct
     input:
       - id
@@ -109,7 +126,7 @@ workflows:
         action: std.noop
 
   glance:
-    description: Updates the status of resources of a project on the image service
+    description: Disables the status of resources of a project on the image service
     type: direct
     input:
       - id
@@ -118,7 +135,7 @@ workflows:
         action: std.noop
 
   manila:
-    description: Updates the status of resources of a project on the fileshare service
+    description: Disables the status of resources of a project on the fileshare service
     type: direct
     input:
       - id
@@ -127,7 +144,7 @@ workflows:
         action: std.noop
 
   heat:
-    description: Updates the status of resources of a project on the orchestration service
+    description: Disables the status of resources of a project on the orchestration service
     type: direct
     input:
       - id
@@ -136,7 +153,7 @@ workflows:
         action: std.noop
 
   barbican:
-    description: Updates the status of resources of a project on the key_manager service
+    description: Disables the status of resources of a project on the key_manager service
     type: direct
     input:
       - id
@@ -145,7 +162,7 @@ workflows:
         action: std.noop
 
   neutron:
-    description: Updates the status of resources of a project on the network service
+    description: Disables the status of resources of a project on the network service
     type: direct
     input:
       - id
@@ -154,7 +171,7 @@ workflows:
         action: std.noop
 
   magnum:
-    description: Updates the status of resources of a project on the container infrastructure service
+    description: Disables the status of resources of a project on the container infrastructure service
     type: direct
     input:
       - id
@@ -163,7 +180,7 @@ workflows:
         action: std.noop
 
   mistral:
-    description: Updates the status of resources of a project on the workflow service
+    description: Disables the status of resources of a project on the workflow service
     type: direct
     input:
       - id
