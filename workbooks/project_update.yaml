@@ -31,6 +31,7 @@ workflows:
         on-success:
           # If project metadata has fim-skip=True, the project resources will not be affected
           - identity_update
+          - identity_enable: <% $.current_enabled = false and $.enabled = true %>
           - service_shutdown: <% $.fim_skip = null or $.fim_skip = "False" %>
       
       service_shutdown:
@@ -47,6 +48,12 @@ workflows:
           name: <% $.name %>
           description: <% $.description %>
           owner: <% $.owner %>
+
+      identity_enable:
+        action: keystone.projects_update
+        input:
+          project: <% $.id %>
+          enabled: True
 
       identity_disable:
         action: keystone.projects_update
