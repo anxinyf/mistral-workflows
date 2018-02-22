@@ -85,25 +85,46 @@ workflows:
             all_tenants: true
             project_id: <% $.id %>
         publish:
-          server_ids: <% task(get_vms).result.id %>
-        on-success:
-          - unlock_vms
-      # Unlock the VMs
-      unlock_vms:
-        with-items: server_id in <% $.server_ids %>
-        action: nova.servers_unlock server=<% $.server_id %>
+          instances: <% task(get_vms).result %>
         on-success:
           - delete_vms
+
       # Delete the VMs
       delete_vms:
-        with-items: server_id in <% $.server_ids %>
-        action: nova.servers_delete server=<% $.server_id %>
-        retry: count=18 delay=10
+        with-items: instance in <% $.instances %>
+        workflow: nova_delete_instance instance=<% $.instance %>
         on-success:
           - quota_cleanup
+        
       # Cleanup quota entries in nova
       quota_cleanup:
         action: nova.quotas_delete tenant_id=<% $.id %>
+
+  nova_delete_instance:
+    type: direct
+    description: Deletes an instance on the compute service
+    input:
+      - instance
+      - skip_status: []
+    tasks:
+      check_instance_status:
+        description: 'Skip status not supported by the APIs'
+        action: std.noop
+        on-success:
+          - unlock_instance: <% not $.instance.status in $.skip_status %>
+          - delete_instance: <% $.instance.status in $.skip_status %>
+
+      unlock_instance:
+        description: 'Unlocks the instance'
+        action: nova.servers_unlock server=<% $.instance %>
+        on-success:
+          - delete_instance
+        on-error:
+          - delete_instance
+
+      delete_instance:
+        action: nova.servers_delete server=<% $.instance %>
+        retry: count=18 delay=10
 
   cinder:
     description: Deletes all resources of a project on the blockstorage service
