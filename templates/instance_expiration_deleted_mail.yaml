@@ -308,7 +308,7 @@ html_body: |
                       <td>
                         <p>Dear Cloud Infrastructure user,</p>
                         <br/>
-                        <p>The Virtual Machine {instance} from your project {project_name} has now been deleted.</p>
+                        <p>The Virtual Machine <b>{instance}</b> from your project <b>{project_name}</b> has now been deleted.</p>
                         <br>
                         <br>
                         <p>If you have any question concerning this, please do not hesitate to open a ticket to the <a href="{servicedesk_link}" target="_blank">Service Desk</a></p>

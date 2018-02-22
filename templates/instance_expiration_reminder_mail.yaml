@@ -317,12 +317,12 @@ html_body: |
                       <td>
                         <p>Dear Cloud Infrastructure user,</p>
                         <br/>
-                        <p>The Virtual Machine {instance} from the project {project_name} in the Cloud Infrastructure Service will expire on {expire_date}.</p>
+                        <p>The Virtual Machine <b>{instance}</b> from the project <b>{project_name}</b> in the Cloud Infrastructure Service will expire on <b>{expire_date}</b>.</p>
                         <br/>
                         <p>If you don't need this instance any longer, you don't need to do anything and the instance will be deleted automatically.</p>
                         <br/>
                         <p>If you want to prolong the expiration date for your Virtual Machine, please click on the following button to go to the instance view of your Virtual Machine and then click on "Prolong Expiration" button.
-                           This will prolong the expiration date to {new_expire_date} </p>
+                           This will prolong the expiration date to <b>{new_expire_date}</b> </p>
                         <br/>
                         <table border="0" cellpadding="0" cellspacing="0" class="btn btn-primary">
                           <tbody>

@@ -307,7 +307,7 @@ html_body: |
                       <td>
                         <p>Dear Cloud Infrastructure administrator,</p>
                         <br/>
-                        <p>The instance {instance} was configured to expire on {expire_date} and this date has passed. Please check the instance.</p>
+                        <p>The instance <b>{instance}</b> was configured to expire on <b>{expire_date}</b> and this date has passed. Please check the instance.</p>
                         <br>
                         <br>
                         <p>Thank you for your attention,</p>
