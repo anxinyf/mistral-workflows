@@ -9,9 +9,9 @@ body: |
   view on our website https://openstack.cern.ch and click on the "Delete Instance"
   button. Then the instance will be deleted automatically.
 
-  If you want to prolong the expiration date for your Virtual Machine,
+  If you want to extend the lifetime of your Virtual Machine,
   please go to the instance view on our website https://openstack.cern.ch
-  and click on "Prolong Expiration" button. This will prolong the expiration
+  and click on "Prolong Expiration" button. This will extend the expiration
   date to {new_expire_date}.
 
   If you have any question concerning this, please do not hesitate to open a ticket
@@ -322,8 +322,8 @@ html_body: |
                         <br/>
                         <p>If you don't need this Virtual Machine any longer, please click on the following button to go to the instance view of your Virtual Machine and then click on "Delete Instance" button.</p>
                         <br/>
-                        <p>If you want to prolong the expiration date for your Virtual Machine, please click on the following button to go to the instance view of your Virtual Machine and then click on "Prolong Expiration" button.
-                           This will prolong the expiration date to <b>{new_expire_date}</b> </p>
+                        <p>If you want to extend the lifetime of your Virtual Machine, please click on the following button to go to the instance view of your Virtual Machine and then click on "Prolong Expiration" button.
+                           This will extend the expiration date to <b>{new_expire_date}</b> </p>
                         <br/>
                         <table border="0" cellpadding="0" cellspacing="0" class="btn btn-primary">
                           <tbody>
