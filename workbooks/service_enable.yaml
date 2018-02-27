@@ -117,7 +117,7 @@ workflows:
           - service_initialize
 
       service_initialize:
-        workflow: service_initialize.neutron
+        workflow: service_initialize.mistral
         input:
           id: <% $.id %>
 
@@ -127,7 +127,7 @@ workflows:
     input:
       - id
     tasks:
-      remove_endpoint_group:
+      add_endpoint_group:
         workflow: service_enable.add_endpoint_group
         input:
           id: <% $.id %>
@@ -139,7 +139,7 @@ workflows:
     input:
       - id
     tasks:
-      remove_endpoint_group:
+      add_endpoint_group:
         workflow: service_enable.add_endpoint_group
         input:
           id: <% $.id %>
