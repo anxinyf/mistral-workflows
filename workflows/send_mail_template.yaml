@@ -8,7 +8,9 @@ send_mail_template:
     replace the placeholders with the values specified
     and then send the mail to the end user
   input:
-    - to
+    - to_addrs
+    - cc_addrs
+    - bcc_addrs
     - template
     - replacements
     - template_folder: 'https://gitlab.cern.ch/cloud-infrastructure/mistral-workflows/raw/master/templates/'
@@ -28,7 +30,9 @@ send_mail_template:
       description: 'Sends mail to the end user'
       action: std.email
       input:
-        to_addrs: ["<% $.to %>"]
+        to_addrs: <% $.to_addrs %>
+        cc_addrs: <% $.cc_addrs %>
+        bcc_addrs: <% $.bcc_addrs %>
         subject: <% $.template.subject.replace($.replacements) %>
         body: <% $.template.body.replace($.replacements) %>
         html_body: <% $.template.html_body.replace($.replacements) %>

@@ -138,7 +138,8 @@ workflows:
         description: 'Retrieve template from Gitlab'
         workflow: send_mail_template
         input:
-          to: <% $.instance.user_id %>@cern.ch
+          to_addrs: [<% $.instance.user_id %>@cern.ch]
+          bcc_addrs: [cloud-infrastructure-expiration@cern.ch]
           template: instance_expiration_reminder_mail
           replacements:
             "{instance}": <% $.instance.name %>
@@ -180,7 +181,8 @@ workflows:
         description: 'Retrieve template from Gitlab'
         workflow: send_mail_template
         input:
-          to: <% $.instance.user_id %>@cern.ch
+          to_addrs: [<% $.instance.user_id %>@cern.ch]
+          bcc_addrs: [cloud-infrastructure-expiration@cern.ch]
           template: instance_expiration_expired_mail
           replacements:
             "{instance}": <% $.instance.name %>
@@ -218,7 +220,8 @@ workflows:
         description: 'Retrieve template from Gitlab'
         workflow: send_mail_template
         input:
-          to: <% $.instance.user_id %>@cern.ch
+          to_addrs: [<% $.instance.user_id %>@cern.ch]
+          bcc_addrs: [cloud-infrastructure-expiration@cern.ch]
           template: instance_expiration_deleted_mail
           replacements:
             "{instance}": <% $.instance.name %>
@@ -236,7 +239,7 @@ workflows:
         description: 'Retrieve template from Gitlab'
         workflow: send_mail_template
         input:
-          to: cloud-infrastructure-expiration@cern.ch
+          to_addrs: [cloud-infrastructure-expiration@cern.ch]
           template: instance_expiration_failed_mail
           replacements:
             "{instance}": <% $.instance.name %>
