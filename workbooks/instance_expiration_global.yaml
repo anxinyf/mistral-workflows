@@ -242,3 +242,76 @@ workflows:
             "{instance}": <% $.instance.name %>
             "{expire_date}": <% datetime($.instance.expire_at).format("%d %B %Y") %>
 
+  project_expiration_initialize:
+    type: direct
+    description: This workflow sets the initial expiration of machines. It is used to deploy the expiration lifecycle
+    input:
+      - project_id
+    tasks:
+      project_exists:
+        action: keystone.projects_get project=<% $.project_id %>
+        publish:
+          project_id: <% task(project_exists).result.id %>
+        on-success:
+          - project_set_expire_flag
+          
+      project_set_expire_flag:
+        description: Sets the expire flag on the project
+        action: keystone.projects_update project=<% $.project_id %> expire="on"
+        on-success:
+          - enable_workflow_service
+
+      enable_workflow_service:
+        description: Enables the workflow service on the project so the user can extend the lifetime of the instance
+        workflow: service_enable.mistral id=<%$.project_id %>
+        on-success:
+          - retrieve_all_instances
+
+      retrieve_all_instances:
+        description: Gets all the instances in the project with their expiration dates if any
+        action: nova.servers_list
+        input:
+          search_opts:
+            all_tenants: 1
+            project_id: <% $.project.id %>
+        publish:
+          expire_date: <% now().replace(hour => 0, minute=>0, second=>0, microsecond=>0) + timespan(days=>(150 + random(0,30))) %>
+          instances: <% task(retrieve_all_instances).result.select(dict(id => $.id, name => $.name, expire_at => $.metadata.get('expire_at', ''), status => $.status)) %>
+        on-success:
+          - enable_instance_expirations
+
+      enable_instance_expirations:
+        description: Sets Reviews the expiration dates of the instances
+        with-items: instance in <% $.instances %>
+        workflow: instance_expiration_global.instance_expiration_initialize instance=<%$.instance %> expire_date=<% $.expire_date %>
+
+  instance_expiration_initialize:
+    type: direct
+    description: This workflow sets the initial expiration of a machine. It is used to deploy the expiration lifecycle
+    input:
+      - instance
+      - expire_date
+    tasks:
+      init:
+        description: Initializes de variables used in the workflow
+        action: std.noop
+        publish:
+          max_expire_date: <% now().replace(hour => 0, minute=>0, second=>0, microsecond=>0) + timespan(days=>180) %>
+          regexp_date: '^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}\.\d{6}$'
+          skip_status: ['BUILDING','ERROR']
+        on-success:
+          - check_instance_expiration
+
+      check_instance_expiration:
+        description: Checks the instance expiration
+        action: std.noop
+        on-success:
+          - set_instance_expiration: <% not $.instance.status in $.skip_status and (not $.instance.expire_at or not regex($.regexp_date).matches($.instance.expire_at) or (datetime($.instance.expire_at) > datetime($.max_expire_date))) %>
+          
+      set_instance_expiration:
+        description: 'Fixes instance expiration'
+        action: nova.servers_set_meta_item
+        input: 
+          server: <% $.instance.id %>
+          key: expire_at
+          value: <% $.expire_date %>
