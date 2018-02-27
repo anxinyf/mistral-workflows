@@ -210,8 +210,7 @@ workflows:
 
       delete_instance:
         description: 'Expires the instance'
-        #action: nova.servers_delete server=<% $.instance.id %>
-        action: std.noop
+        action: nova.servers_delete server=<% $.instance.id %>
         on-success:
           - send_mail_template
 
