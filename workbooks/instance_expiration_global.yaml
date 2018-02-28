@@ -278,7 +278,7 @@ workflows:
             all_tenants: 1
             project_id: <% $.project_id %>
         publish:
-          expire_date: <% now().replace(hour => 0, minute=>0, second=>0, microsecond=>0) + timespan(days=>(150 + random(0,30))) %>
+          expire_date: <% now().replace(hour => 0, minute=>0, second=>0, microsecond=>0) + timespan(days=>180) %>
           instances: <% task(retrieve_all_instances).result.select(dict(id => $.id, name => $.name, expire_at => $.metadata.get('expire_at', ''), status => $.status)) %>
         on-success:
           - enable_instance_expirations
