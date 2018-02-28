@@ -9,8 +9,8 @@ send_mail_template:
     and then send the mail to the end user
   input:
     - to_addrs
-    - cc_addrs
-    - bcc_addrs
+    - cc_addrs: []
+    - bcc_addrs: [] 
     - template
     - replacements
     - template_folder: 'https://gitlab.cern.ch/cloud-infrastructure/mistral-workflows/raw/master/templates/'
