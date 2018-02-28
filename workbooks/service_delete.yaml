@@ -124,7 +124,6 @@ workflows:
 
       delete_instance:
         action: nova.servers_delete server=<% $.instance %>
-        retry: count=18 delay=10
 
   cinder:
     description: Deletes all resources of a project on the blockstorage service
@@ -147,7 +146,6 @@ workflows:
       delete_snapshots:
         with-items: snapshot_id in <% $.snapshot_ids %>
         action: cinder.volume_snapshots_delete snapshot=<% $.snapshot_id %>
-        retry: count=18 delay=10
         on-success:
           - quota_cleanup
       # Get all volumes in the project
@@ -165,7 +163,6 @@ workflows:
       delete_volumes:
         with-items: volume_id in <% $.volume_ids %>
         action: cinder.volumes_delete volume=<% $.volume_id %>
-        retry: count=18 delay=10
         on-success:
           - quota_cleanup
       # Cleanup quota entries in cinder
@@ -202,7 +199,6 @@ workflows:
         join: all
         with-items: image_id in <% $.image_ids %>
         action: glance.images_delete image_id=<% $.image_id %>
-        retry: count=18 delay=10
 
   manila:
     description: Deletes all resources of a project on the fileshare service
@@ -270,6 +266,5 @@ workflows:
       delete_workflows:
         with-items: workflow_id in <% $.workflow_ids %>
         action: mistral.workflows_delete identifier=<% $.workflow_id %>
-        retry: count=18 delay=10
       empty_task:
         action: std.noop
