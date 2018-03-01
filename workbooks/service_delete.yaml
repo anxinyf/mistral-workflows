@@ -85,7 +85,7 @@ workflows:
             all_tenants: true
             project_id: <% $.id %>
         publish:
-          instances: <% task(get_vms).result %>
+          instances: <% task(get_vms).result.select(dict(id => $.id, name => $.name, status => $.status)) %>
         on-success:
           - delete_vms
 
@@ -116,14 +116,14 @@ workflows:
 
       unlock_instance:
         description: 'Unlocks the instance'
-        action: nova.servers_unlock server=<% $.instance %>
+        action: nova.servers_unlock server=<% $.instance.id %>
         on-success:
           - delete_instance
         on-error:
           - delete_instance
 
       delete_instance:
-        action: nova.servers_delete server=<% $.instance %>
+        action: nova.servers_delete server=<% $.instance.id %>
 
   cinder:
     description: Deletes all resources of a project on the blockstorage service
