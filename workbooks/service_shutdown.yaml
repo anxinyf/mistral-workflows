@@ -104,7 +104,7 @@ workflows:
     description: Disables the status of resources on an instance on the compute service
     input:
       - instance
-      - skip_status: ['ERROR', 'SHUTOFF']
+      - skip_status: ['ERROR', 'SUSPENDED', 'SHUTOFF']
     tasks:
       check_instance_status:
         description: 'Skip status not supported by the APIs'
