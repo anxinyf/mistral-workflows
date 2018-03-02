@@ -109,6 +109,17 @@ workflows:
           user: <% $.old_owner %>
           project: <% $.id %>
         on-success:
+          - set_project_owner_as_member
+
+      set_project_owner_as_member:
+        action: keystone.roles_grant
+        input:
+          role: 635d3bb896d84465b4452656cb4e4da6
+          user: <% $.owner %>
+          project: <% $.id %>
+        on-success:
+          - set_project_owner
+        on-error:
           - set_project_owner
 
       set_project_owner:
