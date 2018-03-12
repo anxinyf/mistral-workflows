@@ -1,5 +1,5 @@
 subject: '[Cloud] The Virtual Machine {instance} has been deleted after its expiration'
-body: >-
+body: |
   Dear Cloud Infrastructure user,
 
   The Virtual Machine {instance} from your project {project_name} has now been deleted.
