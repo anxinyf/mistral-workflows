@@ -69,7 +69,11 @@ workflows:
         publish:
           project_id: <% task(project_exists).result.id %>
         on-success:
-          - get_user_id
+          - check_base_endpoint_group
+          - get_owner_role_id
+          - get_member_role_id
+          - set_fim_properties: <% not ('Personal' in $.name)  %>
+          - set_personal_project_properties: <% 'Personal' in $.name  %>
         on-error:
           - create_project
 
@@ -85,7 +89,10 @@ workflows:
           project_id: <% task(create_project).result.id %>
         on-success:
           - check_base_endpoint_group
-          - get_user_id
+          - get_owner_role_id
+          - get_member_role_id
+          - set_fim_properties: <% not ('Personal' in $.name)  %>
+          - set_personal_project_properties: <% 'Personal' in $.name  %>
 
       check_base_endpoint_group:
         action: keystone.endpoint_filter_check_endpoint_group_in_project
@@ -101,31 +108,15 @@ workflows:
           project: <% $.project_id %>
           endpoint_group: 0cf3334a82854c8e85ea4428c283dfc4
 
-      get_user_id:
-        action: keystone.users_find
-        input:
-          name: <% $.owner %>
-        publish:
-          owner_id: <% task(get_user_id).result.id %>
-        on-success:
-          - get_owner_role_id
-          - get_member_role_id
-          - set_fim_properties: <% not ('Personal' in $.name)  %>
-          - set_personal_project_properties: <% 'Personal' in $.name  %>
-
       get_owner_role_id:
-        action: keystone.roles_find
-        input:
-          name: 'owner'
+        action: keystone.roles_find name='owner'
         publish:
           owner_role_id: <% task(get_owner_role_id).result.id %>
         on-success:
           - set_project_owner
 
       get_member_role_id:
-        action: keystone.roles_find
-        input:
-          name: 'Member'
+        action: keystone.roles_find name='Member'
         publish:
           member_role_id: <% task(get_member_role_id).result.id %>
         on-success:
@@ -135,14 +126,14 @@ workflows:
         action: keystone.roles_grant
         input:
           role: <% $.owner_role_id %>
-          user: <% $.owner_id %>
+          user: <% $.owner %>
           project: <% $.project_id %>
 
       set_project_member:
         action: keystone.roles_grant
         input:
           role: <% $.member_role_id %>
-          user: <% $.owner_id %>
+          user: <% $.owner %>
           project: <% $.project_id %>
 
       set_fim_properties:
