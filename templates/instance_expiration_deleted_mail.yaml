@@ -297,7 +297,7 @@ html_body: |
           <div class="content">
 
             <!-- START CENTERED WHITE CONTAINER -->
-            <span class="preheader">[Cloud] The Virtual Machine {instance} has been deleted after its expiration/span>
+            <span class="preheader">[Cloud] The Virtual Machine {instance} has been deleted after its expiration</span>
             <table class="main">
 
               <!-- START MAIN CONTENT AREA -->
