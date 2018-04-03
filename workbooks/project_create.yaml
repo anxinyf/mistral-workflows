@@ -141,3 +141,8 @@ workflows:
 
       set_personal_project_properties:
         action: keystone.projects_update project=<% $.project_id %> accounting-group='personal' type='personal' network='GPN'
+        on-success:
+          - enable_personal_expiration_policy
+
+      enable_personal_expiration_policy:
+        workflow: instance_expiration_global.project_expiration_initialize project_id=<% $.project_id %>
