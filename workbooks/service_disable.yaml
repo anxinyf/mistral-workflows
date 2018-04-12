@@ -104,25 +104,6 @@ workflows:
           id: <% $.id %>
           endpoint_group: a46aedf3ad1d45208c98a7a148988d10
 
-  mistral:
-    description: Disables the Mistral service on a project
-    type: direct
-    input:
-      - id
-    tasks:
-      service_shutdown:
-        workflow: service_shutdown.mistral
-        input:
-          id: <% $.id %>
-        on-success:
-          - remove_endpoint_group
-
-      remove_endpoint_group:
-        workflow: service_disable.remove_endpoint_group
-        input:
-          id: <% $.id %>
-          endpoint_group: 631a3d16b1934ee694129c5cf83dd8f8
-
   s3:
     description: Disables the S3 service on a project
     type: direct

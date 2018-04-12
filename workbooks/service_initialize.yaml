@@ -24,6 +24,7 @@ workflows:
           - barbican
           - neutron
           - magnum
+          - mistral
 
       nova:
         workflow: nova
@@ -60,6 +61,10 @@ workflows:
         input:
           id: <% $.project_id %>
 
+      mistral:
+        workflow: mistral
+        input:
+          id: <% $.project_id %>
   nova:
     description: Initializes a project on the compute service and sets default quotas
     type: direct

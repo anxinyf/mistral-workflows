@@ -262,12 +262,6 @@ workflows:
         description: Sets the expire flag on the project
         action: keystone.projects_update project=<% $.project_id %> expire="on"
         on-success:
-          - enable_workflow_service
-
-      enable_workflow_service:
-        description: Enables the workflow service on the project so the user can extend the lifetime of the instance
-        workflow: service_enable.mistral id=<%$.project_id %>
-        on-success:
           - retrieve_all_instances
 
       retrieve_all_instances:
