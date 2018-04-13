@@ -147,7 +147,7 @@ workflows:
         with-items: snapshot_id in <% $.snapshot_ids %>
         action: cinder.volume_snapshots_delete snapshot=<% $.snapshot_id %>
         on-success:
-          - quota_cleanup
+          - get_volumes
       # Get all volumes in the project
       get_volumes:
         action: cinder.volumes_list
