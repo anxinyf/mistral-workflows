@@ -74,7 +74,7 @@ workflows:
           mail_dates: [30, 15, 7, 5, 3, 2, 1]
           regexp_date: '^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}\.\d{6}$'
           grace_period: 7
-          skip_status: ['BUILDING','ERROR']
+          skip_status: ['BUILD','ERROR']
         on-success:
           - check_instance_status
 
