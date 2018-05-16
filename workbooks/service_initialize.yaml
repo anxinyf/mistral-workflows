@@ -137,8 +137,21 @@ workflows:
     input:
       - id
     tasks:
-      empty_task:
-        action: std.noop
+      update_share_global_quota:
+        action: manila.quotas_update tenant_id=<% $.id %> shares=10 snapshots=10 gigabytes=100 snapshot_gigabytes=-1
+        on-success:
+          - update_share_testing_quota
+          - update_share_production_quota
+          - update_share_hpc_quota
+
+      update_share_testing_quota:
+        action: manila.quotas_update tenant_id=<% $.id %> share_type=feee95c5-9b20-4bd4-bc15-9269f012e399 shares=10 snapshots=10 gigabytes=100 snapshot_gigabytes=-1
+
+      update_share_production_quota:
+        action: manila.quotas_update tenant_id=<% $.id %> share_type=ec0cae55-27ee-4105-a5ef-6103eb92506c shares=0 snapshots=0 gigabytes=0 snapshot_gigabytes=-1
+
+      update_share_hpc_quota:
+        action: manila.quotas_update tenant_id=<% $.id %> share_type=feee95c5-9b20-4bd4-bc15-9269f012e399 shares=0 snapshots=0 gigabytes=0 snapshot_gigabytes=-1
 
   barbican:
     description: Initializes a project on the key_manager service and sets default quotas
