@@ -206,8 +206,44 @@ workflows:
     input:
       - id
     tasks:
-      empty_task:
-        action: std.noop
+      # Get all shares in the project
+      get_snapshots:
+        action: manila.share_snapshots_list
+        input:
+          search_opts:
+            all_tenants: true
+            project_id: <% $.id %>
+        publish:
+          snapshot_ids: <% task(get_snapshots).result.id %>
+        on-success:
+          - delete_snapshots
+      # Delete the share snapshots
+      delete_snapshots:
+        with-items: snapshot_id in <% $.snapshot_ids %>
+        action: manila.share_snapshots_delete snapshot=<% $.snapshot_id %>
+        on-success:
+          - get_shares
+      # Get all shares in the project
+      get_shares:
+        action: manila.shares_list
+        input:
+          search_opts:
+            all_tenants: true
+            project_id: <% $.id %>
+        publish:
+          share_ids: <% task(get_shares).result.id %>
+        on-success:
+          - delete_shares
+      # Delete the shares
+      delete_shares:
+        with-items: share_id in <% $.share_ids %>
+        action: manila.shares_delete share=<% $.share_id %>
+        on-success:
+          - quota_cleanup
+      # Cleanup quota entries in manila
+      quota_cleanup:
+        join: all
+        action: manila.quotas_delete tenant_id=<% $.id %>
 
   heat:
     description: Deletes all resources of a project on the orchestration service
