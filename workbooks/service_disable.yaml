@@ -127,3 +127,51 @@ workflows:
         input:
           id: <% $.id %>
           endpoint_group: 833550cc3acf11e7a91992ebcb67fe33
+
+  deprecated:
+    description: Disables the deprecated service on a project
+    type: direct
+    input:
+      - id
+    tasks:
+      add_endpoint_group:
+        workflow: service_enable.remove_endpoint_group
+        input:
+          id: <% $.id %>
+          endpoint_group: 1637d00e2826462a990aed71c72bd560
+
+  cinderv3:
+    description: Disables the Cinder V3 service on a project
+    type: direct
+    input:
+      - id
+    tasks:
+      add_endpoint_group:
+        workflow: service_enable.remove_endpoint_group
+        input:
+          id: <% $.id %>
+          endpoint_group: 6b9da0664b6111e79c3502163e00d261
+
+  ironic-qa:
+    description: Disables the Ironic QA service on a project
+    type: direct
+    input:
+      - id
+    tasks:
+      add_endpoint_group:
+        workflow: service_enable.remove_endpoint_group
+        input:
+          id: <% $.id %>
+          endpoint_group: 0636055eafef11e7abc4cec278b6b50a
+
+  sdn1:
+    description: Disables the SDN1 region on a project
+    type: direct
+    input:
+      - id
+    tasks:
+      add_endpoint_group:
+        workflow: service_enable.remove_endpoint_group
+        input:
+          id: <% $.id %>
+          endpoint_group: fbaa7a94212b11e8b4670ed5f89f718b
