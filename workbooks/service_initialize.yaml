@@ -23,6 +23,7 @@ workflows:
           - heat
           - barbican
           - neutron
+          - manila
           - magnum
           - mistral
 
@@ -58,6 +59,11 @@ workflows:
 
       magnum:
         workflow: magnum
+        input:
+          id: <% $.project_id %>
+
+      manila:
+        workflow: manila
         input:
           id: <% $.project_id %>
 
