@@ -135,14 +135,14 @@ workflows:
       - id
     tasks:
       update_share_global_quota:
-        action: manila.quotas_update tenant_id=<% $.id %> shares=10 snapshots=0 gigabytes=100 snapshot_gigabytes=0
+        action: manila.quotas_update tenant_id=<% $.id %> shares=0 snapshots=0 gigabytes=0 snapshot_gigabytes=0
         on-success:
           - update_share_testing_quota
           - update_share_production_quota
           - update_share_hpc_quota
 
       update_share_testing_quota:
-        action: manila.quotas_update tenant_id=<% $.id %> share_type='feee95c5-9b20-4bd4-bc15-9269f012e399' shares=10 snapshots=0 gigabytes=100 snapshot_gigabytes=0
+        action: manila.quotas_update tenant_id=<% $.id %> share_type='feee95c5-9b20-4bd4-bc15-9269f012e399' shares=0 snapshots=0 gigabytes=0 snapshot_gigabytes=0
 
       update_share_production_quota:
         action: manila.quotas_update tenant_id=<% $.id %> share_type='ec0cae55-27ee-4105-a5ef-6103eb92506c' shares=0 snapshots=0 gigabytes=0 snapshot_gigabytes=0
