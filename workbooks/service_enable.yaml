@@ -26,44 +26,6 @@ workflows:
           project: <% $.id %>
           endpoint_group: <% $.endpoint_group %>
 
-  manila:
-    description: Enables the Manila service on a project
-    type: direct
-    input:
-      - id
-    tasks:
-      add_endpoint_group:
-        workflow: service_enable.add_endpoint_group
-        input:
-          id: <% $.id %>
-          endpoint_group: e139043395a6404eba26e1b259adf5a0
-        on-success:
-          - service_initialize
-
-      service_initialize:
-        workflow: service_initialize.manila
-        input:
-          id: <% $.id %>
-
-  barbican:
-    description: Enables the Barbican service on a project
-    type: direct
-    input:
-      - id
-    tasks:
-      add_endpoint_group:
-        workflow: service_enable.add_endpoint_group
-        input:
-          id: <% $.id %>
-          endpoint_group: 063d65c80b9111e6b5123e1d05defe78
-        on-success:
-          - service_initialize
-
-      service_initialize:
-        workflow: service_initialize.barbican
-        input:
-          id: <% $.id %>
-
   neutron:
     description: Enables the Neutron service on a project
     type: direct
@@ -75,25 +37,6 @@ workflows:
         input:
           id: <% $.id %>
           endpoint_group: b051dc2a99714d6c92aff4aef4dc9e7c
-        on-success:
-          - service_initialize
-
-      service_initialize:
-        workflow: service_initialize.neutron
-        input:
-          id: <% $.id %>
-
-  magnum:
-    description: Enables the Magnum service on a project
-    type: direct
-    input:
-      - id
-    tasks:
-      add_endpoint_group:
-        workflow: service_enable.add_endpoint_group
-        input:
-          id: <% $.id %>
-          endpoint_group: a46aedf3ad1d45208c98a7a148988d10
         on-success:
           - service_initialize
 

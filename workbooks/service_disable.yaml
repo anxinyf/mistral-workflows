@@ -28,44 +28,6 @@ workflows:
           project: <% $.id %>
           endpoint_group: <% $.endpoint_group %>
 
-  manila:
-    description: Disables the Manila service on a project
-    type: direct
-    input:
-      - id
-    tasks:
-      service_shutdown:
-        workflow: service_shutdown.manila
-        input:
-          id: <% $.id %>
-        on-success:
-          - remove_endpoint_group
-      
-      remove_endpoint_group:
-        workflow: service_disable.remove_endpoint_group
-        input:
-          id: <% $.id %>
-          endpoint_group: e139043395a6404eba26e1b259adf5a0
-
-  barbican:
-    description: Disables the Barbican service on a project
-    type: direct
-    input:
-      - id
-    tasks:
-      service_shutdown:
-        workflow: service_shutdown.barbican
-        input:
-          id: <% $.id %>
-        on-success:
-          - remove_endpoint_group
-
-      remove_endpoint_group:
-        workflow: service_disable.remove_endpoint_group
-        input:
-          id: <% $.id %>
-          endpoint_group: 063d65c80b9111e6b5123e1d05defe78
-
   neutron:
     description: Disables the Neutron service on a project
     type: direct
@@ -84,25 +46,6 @@ workflows:
         input:
           id: <% $.id %>
           endpoint_group: b051dc2a99714d6c92aff4aef4dc9e7c
-
-  magnum:
-    description: Disables the Magnum service on a project
-    type: direct
-    input:
-      - id
-    tasks:
-      service_shutdown:
-        workflow: service_shutdown.magnum
-        input:
-          id: <% $.id %>
-        on-success:
-          - remove_endpoint_group
-
-      remove_endpoint_group:
-        workflow: service_disable.remove_endpoint_group
-        input:
-          id: <% $.id %>
-          endpoint_group: a46aedf3ad1d45208c98a7a148988d10
 
   s3:
     description: Disables the S3 service on a project
