@@ -44,10 +44,14 @@ workflows:
       retrieve_all_instances:
         description: 'Gets all the instances in the project with their expiration dates'
         action: nova.servers_list
+        keep-result: false
         input:
           search_opts:
             all_tenants: 1
             project_id: <% $.project.id %>
+        retry:
+          delay: 10
+          count: 5
         publish:
           instances: <% task(retrieve_all_instances).result.select(dict(id => $.id, name => $.name, expire_at => $.metadata.get('expire_at', ''), status => $.status, user_id => $.user_id)) %>
         on-success:
