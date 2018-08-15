@@ -1,0 +1,28 @@
+---
+version: '2.0'
+
+project_iterator:
+  type: direct
+  description: 'Execute a nested workflow on the projects'
+  input:
+    - workflow
+    - type: "personal"
+  output:
+    projects: <% $.projects %>
+
+  tasks:
+    retrieve_projects_with_type:
+      action: keystone.projects_list domain=default
+      keep-result: false
+      publish:
+        projects: <% task(retrieve_projects_with_type).result.select(dict(id => $.id, enabled => $.enabled, type => $.get('type','none'))).where($.type=execution().input.type) %>
+      on-success:
+        - launch_workflow
+
+    launch_workflow:
+      description: 'Launch the workflow per project'
+      with-items: project in <% $.projects %>
+      concurrency: 400
+      workflow: <% $.workflow %>
+      input: 
+        id: <% $.project.id %>
