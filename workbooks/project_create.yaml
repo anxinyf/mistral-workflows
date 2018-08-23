@@ -140,4 +140,4 @@ workflows:
         action: keystone.projects_update project=<% $.project_id %> fim-lock='True' fim-skip='True'
 
       set_personal_project_properties:
-        action: keystone.projects_update project=<% $.project_id %> accounting-group='personal' type='personal' network='GPN' expire='on'
+        action: keystone.projects_update project=<% $.project_id %> accounting-group='personal' type='personal' network='GPN' tags=['expiration']
