@@ -25,7 +25,7 @@ workflows:
         action: keystone.projects_list domain=default
         keep-result: false
         publish:
-          projects: <% task(retrieve_all_projects).result.select(dict(id => $.id, name => $.name, enabled => $.enabled, type => $.get('type','none'),expire => $.get('expire','off'))).where($.type='personal').where($.enabled).where($.expire='on') %>
+          projects: <% task(retrieve_all_projects).result.select(dict(id => $.id, name => $.name, enabled => $.enabled, type => $.get('type','none'))).where($.type='personal').where($.enabled) %>
         on-success:
           - launch_project_expirations
 
