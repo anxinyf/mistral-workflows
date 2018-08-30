@@ -22,10 +22,10 @@ workflows:
     description: This workflow checks all the projects with expiration and reacts accordingly
     tasks:
       retrieve_all_projects:
-        action: keystone.projects_list domain=default
+        action: keystone.projects_list domain=default tags_any=expiration enabled=true
         keep-result: false
         publish:
-          projects: <% task(retrieve_all_projects).result.select(dict(id => $.id, name => $.name, enabled => $.enabled, type => $.get('type','none'))).where($.type='personal').where($.enabled) %>
+          projects: <% task(retrieve_all_projects).result.select(dict(id => $.id, name => $.name)) %>
         on-success:
           - launch_project_expirations
 
