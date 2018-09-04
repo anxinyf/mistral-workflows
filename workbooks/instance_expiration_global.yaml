@@ -37,7 +37,9 @@ workflows:
         description: 'Reviews the expiration dates of the projects'
         with-items: project in <% $.projects %>
         concurrency: 400
-        workflow: instance_expiration_global.daily_project_expiration project=<% $.project %>
+        workflow: instance_expiration_global.daily_project_expiration
+        input:
+          project: <% $.project %>
 
   daily_project_expiration:
     type: direct
@@ -45,6 +47,18 @@ workflows:
     input:
       - project
     tasks:
+      retrieve_project_owner:
+        description: 'Gets the user with the owner role in the project'
+        action: keystone.role_assignments_list
+        keep-result: false
+        input:
+          project: <% $.project.id %>
+          role: "c93214972afe4fccbdb78fea78c362cd"
+        publish:
+          owner: <% task(retrieve_project_owner).result.select($.user.id) %>
+        on-success:
+          - retrieve_all_instances
+
       retrieve_all_instances:
         description: 'Gets all the instances in the project with their expiration dates'
         action: nova.servers_list
@@ -64,7 +78,11 @@ workflows:
       launch_instance_expirations:
         description: 'Reviews the expiration dates of the instances'
         with-items: instance in <% $.instances %>
-        workflow: instance_expiration_global.daily_instance_expiration instance=<% $.instance %> project=<% $.project %>
+        workflow: instance_expiration_global.daily_instance_expiration
+        input:
+          instance: <% $.instance %>
+          project: <% $.project %>
+          owner: <% $.owner %>
 
   daily_instance_expiration:
     type: direct
@@ -72,6 +90,7 @@ workflows:
     input:
       - instance
       - project
+      - owner
     tasks:
       init:
         description: 'Initializes de variables used in the workflow'
@@ -122,19 +141,34 @@ workflows:
 
       reminder_instance:
         description: 'Send warning mail about expiration'
-        workflow: instance_expiration_global.reminder_job instance=<% $.instance %> project=<% $.project %>
+        workflow: instance_expiration_global.reminder_job
+        input:
+          instance: <% $.instance %>
+          project: <% $.project %>
+          owner: <% $.owner %>
 
       expire_instance:
         description: 'Expire instance'
-        workflow: instance_expiration_global.expire_job instance=<% $.instance %> project=<% $.project %>
+        workflow: instance_expiration_global.expire_job
+        input:
+          instance: <% $.instance %>
+          project: <% $.project %>
+          owner: <% $.owner %>
 
       delete_instance:
         description: 'Delete instance'
-        workflow: instance_expiration_global.delete_job instance=<% $.instance %> project=<% $.project %>
+        workflow: instance_expiration_global.delete_job
+        input:
+          instance: <% $.instance %>
+          project: <% $.project %>
+          owner: <% $.owner %>
 
       failed_to_expire_instance:
         description: 'The expiration date has passed notify administrators'
-        workflow: instance_expiration_global.failed_expire_job instance=<% $.instance %> project=<% $.project %>
+        workflow: instance_expiration_global.failed_expire_job
+        input:
+          instance: <% $.instance %>
+          project: <% $.project %>
 
   reminder_job:
     type: direct
@@ -142,12 +176,13 @@ workflows:
     input:
       - instance
       - project
+      - owner
     tasks:
       send_mail_template:
         description: 'Retrieve template from Gitlab'
         workflow: send_mail_template
         input:
-          to_addrs: [<% $.instance.user_id %>@cern.ch]
+          to_addrs: <% $.owner.select(concat($,"@cern.ch")) %>
           bcc_addrs: [cloud-infrastructure-expiration@cern.ch]
           template: instance_expiration_reminder_mail
           replacements:
@@ -165,16 +200,21 @@ workflows:
     input:
       - instance
       - project
+      - owner
     tasks:
       check_instance:
         description: 'Expires the instance'
-        action: nova.servers_get server=<% $.instance.id %>
+        action: nova.servers_get
+        input:
+          server: <% $.instance.id %>
         on-success:
           - expire_instance
 
       expire_instance:
         description: 'Pre expires the instance'
-        action: nova.servers_stop server=<% $.instance.id %>
+        action: nova.servers_stop
+        input:
+          server: <% $.instance.id %>
         on-success:
           - lock_instance
         on-error:
@@ -182,7 +222,9 @@ workflows:
 
       lock_instance:
         description: 'Locks the instance'
-        action: nova.servers_lock server=<% $.instance.id %>
+        action: nova.servers_lock
+        input:
+          server: <% $.instance.id %>
         on-success:
           - retrieve_template
 
@@ -190,7 +232,7 @@ workflows:
         description: 'Retrieve template from Gitlab'
         workflow: send_mail_template
         input:
-          to_addrs: [<% $.instance.user_id %>@cern.ch]
+          to_addrs: <% $.owner.select(concat($,"@cern.ch")) %>
           bcc_addrs: [cloud-infrastructure-expiration@cern.ch]
           template: instance_expiration_expired_mail
           replacements:
@@ -206,22 +248,29 @@ workflows:
     input:
       - instance
       - project
+      - owner
     tasks:
       check_instance:
         description: 'Expires the instance'
-        action: nova.servers_get server=<% $.instance.id %>
+        action: nova.servers_get
+        input:
+          server: <% $.instance.id %>
         on-success:
           - unlock_instance
 
       unlock_instance:
         description: 'Unlocks the instance'
-        action: nova.servers_unlock server=<% $.instance.id %>
+        action: nova.servers_unlock
+        input:
+          server: <% $.instance.id %>
         on-success:
           - delete_instance
 
       delete_instance:
         description: 'Expires the instance'
-        action: nova.servers_delete server=<% $.instance.id %>
+        action: nova.servers_delete
+        input:
+          server: <% $.instance.id %>
         on-success:
           - send_mail_template
 
@@ -229,7 +278,7 @@ workflows:
         description: 'Retrieve template from Gitlab'
         workflow: send_mail_template
         input:
-          to_addrs: [<% $.instance.user_id %>@cern.ch]
+          to_addrs: <% $.owner.select(concat($,"@cern.ch")) %>
           bcc_addrs: [cloud-infrastructure-expiration@cern.ch]
           template: instance_expiration_deleted_mail
           replacements:
@@ -261,15 +310,20 @@ workflows:
       - project_id
     tasks:
       project_exists:
-        action: keystone.projects_get project=<% $.project_id %>
+        action: keystone.projects_get
+        input:
+          project: <% $.project_id %>
         publish:
           project_id: <% task(project_exists).result.id %>
         on-success:
-          - project_set_expire_flag
+          - project_set_expire_tag
           
-      project_set_expire_flag:
+      project_set_expire_tag:
         description: Sets the expire flag on the project
-        action: keystone.projects_update project=<% $.project_id %> expire="on"
+        action: keystone.projects_update
+        input:
+          project: <% $.project_id %>
+          tags: ["expiration"]
         on-success:
           - retrieve_all_instances
 
@@ -289,7 +343,10 @@ workflows:
       enable_instance_expirations:
         description: Sets Reviews the expiration dates of the instances
         with-items: instance in <% $.instances %>
-        workflow: instance_expiration_global.instance_expiration_initialize instance=<%$.instance %> expire_date=<% $.expire_date %>
+        workflow: instance_expiration_global.instance_expiration_initialize
+        input:
+          instance: <%$.instance %>
+          expire_date: <% $.expire_date %>
 
   instance_expiration_initialize:
     type: direct
