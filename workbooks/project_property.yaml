@@ -1,0 +1,32 @@
+---
+version: '2.0'
+
+name: project_property
+description: Workbook that manages properties
+
+workflows:
+  update:
+    type: direct
+    description: Retrieves the properties configured in the project
+    input:
+      - project
+      - properties
+    tasks:
+      set_project:
+        action: keystone.projects_update
+        input: <% $.properties.mergeWith(dict(project => $.project)) %>
+
+  list:
+    type: direct
+    description: Retrieves the properties configured in the project
+    input:
+      - project
+    output:
+      properties: <% $.properties %>
+    tasks:
+      get_project:
+        action: keystone.projects_get
+        input:
+          project: <% $.project %>
+        publish:
+          properties: <% task(get_project).result.delete('_info','_loaded','manager','links', 'domain_id','parent_id','is_domain','tags','id','name','description','enabled').items().select(dict(property_name => $.first(), property_value => $.last())) %>
