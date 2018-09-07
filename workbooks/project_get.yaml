@@ -9,12 +9,14 @@ workflows:
     type: direct
     input:
       - id
+
     output:
       id: <% $.id %>
       description: <% $.description %>
       owner: <% $.owner %>
       name: <% $.name %>
       enabled: <% $.enabled %>
+
     tasks:
       project_get:
         action: keystone.projects_get
@@ -24,17 +26,29 @@ workflows:
           description: <% task(project_get).result.description %>
           name: <% task(project_get).result.name %>
           enabled: <% task(project_get).result.enabled %>
+
+      get_owner_role:
+        action: keystone.roles_find
+        input:
+          name: owner
+        publish:
+          role_owner_id: <% task(get_owner_role).result.id %>
+        on-success:
+        - get_project_owner
+
       get_project_owner:
         action: keystone.role_assignments_list
         input:
-          role: c93214972afe4fccbdb78fea78c362cd
+          role: <% $.role_owner_id %>
           project: <% $.id %>
         publish:
           owner: <% task(get_project_owner).result[0].user.id %>
+
   detailed:
     type: direct
     input:
       - id
+
     output:
       id: <% $.id %>
       description: <% $.description %>
@@ -44,6 +58,7 @@ workflows:
       allowOperators: <% $.allowOperators %>
       allowSupporters: <% $.allowSupporters %>
       services: <% $.services %>
+
     tasks:
       default_get:
         workflow: project_get.init
@@ -54,6 +69,7 @@ workflows:
           name: <% task(default_get).result.name %>
           enabled: <% task(default_get).result.enabled %>
           owner: <% task(default_get).result.owner %>
+
       get_operator_role:
         action: keystone.roles_find
         input:
@@ -62,6 +78,7 @@ workflows:
           role_operator_id: <% task(get_operator_role).result.id %>
         on-success:
           - allow_operators
+
       get_supporter_role:
         action: keystone.roles_find
         input:
@@ -70,6 +87,7 @@ workflows:
           role_supporter_id: <% task(get_supporter_role).result.id %>
         on-success:
           - allow_supporters
+
       allow_operators:
         action: keystone.role_assignments_list
         input:
@@ -77,6 +95,7 @@ workflows:
           project: <% $.id %>
         publish:
           allowOperators: <% bool(task(allow_operators).result) %>
+
       allow_supporters:
         action: keystone.role_assignments_list
         input:
@@ -84,6 +103,7 @@ workflows:
           project: <% $.id %>
         publish:
           allowSupporters: <% bool(task(allow_supporters).result) %>
+
       services:
         workflow: service_list.project
         input:
