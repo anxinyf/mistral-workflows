@@ -1,0 +1,32 @@
+---
+version: '2.0'
+
+name: service_list
+description: Workbook that manages service retrieval
+
+workflows:
+  init:
+    type: direct
+    description: Retrieves the services available by endpoint groups
+    output:
+      services: <% $.services %>
+    tasks:
+      get_endpoint_groups:
+        action: keystone.endpoint_groups_list
+        publish:
+          services: <% task(get_endpoint_groups).result.select(dict(id => $.name, description => $.description)) %>
+
+  project:
+    type: direct
+    description: Retrieves the services available in a project by endpoint groups
+    input:
+      - project
+    output:
+      services: <% $.services %>
+    tasks:
+      get_endpoint_groups_per_project:
+        action: keystone.endpoint_filter_list_endpoint_groups_for_project
+        input:
+          project: <% $.project %>
+        publish:
+          services: <% task(get_endpoint_groups_per_project).result.select(dict(service_name => $.name)) %>
