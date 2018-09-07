@@ -1,0 +1,237 @@
+---
+version: '2.0'
+
+name: project_grants
+description: Workbook that manages project ACLs
+
+workflows:
+  add:
+    type: direct
+    description: Adds the role to the users and groups to the project specified
+    input:
+      - project
+      - members: []
+      - role: "Member"
+
+    tasks:
+      get_role_id:
+        action: keystone.roles_find
+        input:
+          name: <% $.role %>
+        publish:
+          role_id: <% task(get_role_id).result.id %>
+        on-success:
+          - split_members
+
+      split_members:
+        with-items: member in <% $.members %>
+        workflow: project_grants.split_user_group
+        input:
+          member: <% $.member %>
+        publish:
+          users: <% task(split_members).result.user.where($) %>
+          groups: <% task(split_members).result.group.where($) %>
+        on-success:
+          - add_user_grants
+          - add_group_grants
+
+      add_user_grants:
+        with-items: user in <% $.users %>
+        action: keystone.roles_grant
+        input:
+          role: <% $.role_id %>
+          user: <% $.user %>
+          project: <% $.project %>
+
+      add_group_grants:
+        with-items: group in <% $.groups %>
+        action: keystone.roles_grant
+        input:
+          role: <% $.role_id %>
+          group: <% $.group %>
+          project: <% $.project %>
+
+  revoke:
+    type: direct
+    description: Revoke the role to the users and groups to the project specified
+    input:
+      - project
+      - members: []
+      - role: "Member"
+
+    tasks:
+      get_role_id:
+        action: keystone.roles_find
+        input:
+          name: <% $.role %>
+        publish:
+          role_id: <% task(get_role_id).result.id %>
+        on-success:
+          - split_members
+
+      split_members:
+        with-items: member in <% $.members %>
+        workflow: project_grants.split_user_group
+        input:
+          member: <% $.member %>
+        publish:
+          users: <% task(split_members).result.user.where($) %>
+          groups: <% task(split_members).result.group.where($) %>
+        on-success:
+          - revoke_user_grants
+          - revoke_group_grants
+
+      revoke_user_grants:
+        with-items: user in <% $.users %>
+        action: keystone.roles_revoke
+        input:
+          role: <% $.role_id %>
+          user: <% $.user %>
+          project: <% $.project %>
+
+      revoke_group_grants:
+        with-items: group in <% $.groups %>
+        action: keystone.roles_revoke
+        input:
+          role: <% $.role_id %>
+          group: <% $.group %>
+          project: <% $.project %>
+
+  set:
+    type: direct
+    description: Revoke the members on a project and adds the ones passed by parameter into the project specified
+    input:
+      - project
+      - members: []
+      - role: "Member"
+    tasks:
+      revoke_grants:
+        workflow: project_grants.revoke
+        input:
+          project: <% $.project %>
+          members: <% $.members %>
+          role: <% $.role %>
+        on-success:
+          - add_grants
+
+      add_grants:
+        workflow: project_grants.add
+        input:
+          project: <% $.project %>
+          members: <% $.members %>
+          role: <% $.role %>
+
+  split_user_group:
+    type: direct
+    description: Helper workflow to split the member into a user or a group
+    input:
+      - member
+    output:
+      user: <% $.user %>
+      group: <% $.group %>
+    tasks:
+      get_user_id:
+        action: keystone.users_find
+        input:
+          name: <% $.member %>
+        publish:
+          user: <% task(get_user_id).result.id %>
+        publish-on-error:
+          user: null
+        on-success:
+          - final
+        on-error:
+          - final
+
+      get_group_id:
+        action: keystone.groups_find
+        input:
+          name: <% $.member %>
+        publish:
+          group: <% task(get_group_id).result.id %>
+        publish-on-error:
+          group: null
+        on-success:
+          - final
+        on-error:
+          - final
+
+      final:
+        join: all
+        action: std.noop
+
+  check:
+    type: direct
+    description: check the role to the users and groups to the project specified
+    input:
+      - project
+      - member
+      - role: "Member"
+    output:
+      check: <% $.check %>
+
+    tasks:
+      get_role_id:
+        action: keystone.roles_find
+        input:
+          name: <% $.role %>
+        publish:
+          role_id: <% task(get_role_id).result.id %>
+        on-success:
+          - role_check
+
+      get_user_or_group:
+        workflow: project_grants.split_user_group
+        input:
+          member: <% $.member %>
+        publish:
+          user: <% task(get_user_or_group).result.user %>
+          group: <% task(get_user_or_group).result.group %>
+
+      role_check:
+        join: all
+        action: keystone.roles_check
+        input:
+          project: <% $.project %>
+          role: <% $.role_id %>
+          user: <% $.user %>
+          group: <% $.group %>
+        publish:
+          check: <% task(role_check).result %>
+        publish-on-error:
+          check: false
+        on-success:
+          - final
+        on-error:
+          - final
+
+      final:
+        action: std.noop
+
+  list:
+    type: direct
+    description: Retrieves the grants assigned to the project.
+    input:
+      - project
+      - role: "Member"
+    ouput:
+      grants: <% $.grants %>
+
+    tasks:
+      get_role_id:
+        action: keystone.roles_find
+        input:
+          name: <% $.role %>
+        publish:
+          role_name: <% $.role %>
+          role_id: <% task(get_role_id).result.id %>
+        on-success:
+          - list_grants
+
+      list_grants:
+        action: keystone.role_assignments_list
+        input:
+          role: <% $.role_id %>
+          project: <% $.project %>
+        publish:
+          grants: <% task(list_grants).result.select(dict(name => switch($.containsKey("user") => $.user.id,$.containsKey("group") => $.group.id), project_id => $.scope.project.id, role_name => task(get_role_id).published.role_name)) %>
