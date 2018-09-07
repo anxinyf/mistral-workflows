@@ -1,0 +1,92 @@
+---
+version: '2.0'
+
+name: project_get
+description: Workbook that contains project_get workflows
+
+workflows:
+  init:
+    type: direct
+    input:
+      - id
+    output:
+      id: <% $.id %>
+      description: <% $.description %>
+      owner: <% $.owner %>
+      name: <% $.name %>
+      enabled: <% $.enabled %>
+    tasks:
+      project_get:
+        action: keystone.projects_get
+        input:
+          project: <% $.id %>
+        publish:
+          description: <% task(project_get).result.description %>
+          name: <% task(project_get).result.name %>
+          enabled: <% task(project_get).result.enabled %>
+      get_project_owner:
+        action: keystone.role_assignments_list
+        input:
+          role: c93214972afe4fccbdb78fea78c362cd
+          project: <% $.id %>
+        publish:
+          owner: <% task(get_project_owner).result[0].user.id %>
+  detailed:
+    type: direct
+    input:
+      - id
+    output:
+      id: <% $.id %>
+      description: <% $.description %>
+      owner: <% $.owner %>
+      name: <% $.name %>
+      enabled: <% $.enabled %>
+      allowOperators: <% $.allowOperators %>
+      allowSupporters: <% $.allowSupporters %>
+      services: <% $.services %>
+    tasks:
+      default_get:
+        workflow: project_get.init
+        input:
+          id: <% $.id %>
+        publish:
+          description: <% task(default_get).result.description %>
+          name: <% task(default_get).result.name %>
+          enabled: <% task(default_get).result.enabled %>
+          owner: <% task(default_get).result.owner %>
+      get_operator_role:
+        action: keystone.roles_find
+        input:
+          name: operator
+        publish:
+          role_operator_id: <% task(get_operator_role).result.id %>
+        on-success:
+          - allow_operators
+      get_supporter_role:
+        action: keystone.roles_find
+        input:
+          name: supporter
+        publish:
+          role_supporter_id: <% task(get_supporter_role).result.id %>
+        on-success:
+          - allow_supporters
+      allow_operators:
+        action: keystone.role_assignments_list
+        input:
+          role: <% $.role_operator_id %>
+          project: <% $.id %>
+        publish:
+          allowOperators: <% bool(task(allow_operators).result) %>
+      allow_supporters:
+        action: keystone.role_assignments_list
+        input:
+          role: <% $.role_supporter_id %>
+          project: <% $.id %>
+        publish:
+          allowSupporters: <% bool(task(allow_supporters).result) %>
+      services:
+        workflow: service_list.project
+        input:
+          project: <% $.id %>
+        publish:
+          services: <% task(services).result.services %>
