@@ -134,7 +134,7 @@ workflows:
         publish:
           owners: <% dict(task(retrieve_all_owners).result.where($.scope.containsKey('project')).select(list($.scope.project.id,$.user.id))) %>
         on-success:
-        - retrieve_all_projects
+        - merge
 
       retrieve_all_projects:
         action: keystone.projects_list
@@ -142,4 +142,12 @@ workflows:
           domain: "default"
         keep-result: false
         publish:
-          projects: <% task(retrieve_all_projects).result.select(dict(id => $.id, name => $.name, description => $.description, enabled => $.enabled, owner => task(retrieve_all_owners).published.owners.get($.id))) %>
+          projects_all: <% task(retrieve_all_projects).result.select(dict(id => $.id, name => $.name, description => $.description, enabled => $.enabled)) %>
+        on-success:
+        - merge
+
+      merge:
+        join: all
+        action: std.noop
+        publish:
+          projects: <% task(retrieve_all_projects).published.projects_all.select(dict(id => $.id, name => $.name, description => $.description, enabled => $.enabled, owner => task(retrieve_all_owners).published.owners.get($.id)))%>
