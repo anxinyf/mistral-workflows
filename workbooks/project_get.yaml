@@ -110,3 +110,36 @@ workflows:
           project: <% $.id %>
         publish:
           services: <% task(services).result.services %>
+
+  all:
+    type: direct
+    output:
+      projects: <% $.projects %>
+
+    tasks:
+      get_owner_role:
+        action: keystone.roles_find
+        input:
+          name: owner
+        publish:
+          role_owner_id: <% task(get_owner_role).result.id %>
+        on-success:
+        - retrieve_all_owners
+
+      retrieve_all_owners:
+        action: keystone.role_assignments_list
+        input:
+          role: <% $.role_owner_id %>
+        keep-result: false
+        publish:
+          owners: <% dict(task(retrieve_all_owners).result.where($.scope.containsKey('project')).select(list($.scope.project.id,$.user.id))) %>
+        on-success:
+        - retrieve_all_projects
+
+      retrieve_all_projects:
+        action: keystone.projects_list
+        input:
+          domain: "default"
+        keep-result: false
+        publish:
+          projects: <% task(retrieve_all_projects).result.select(dict(id => $.id, name => $.name, description => $.description, enabled => $.enabled, owner => task(retrieve_all_owners).published.owners.get($.id))) %>
