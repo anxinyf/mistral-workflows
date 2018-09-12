@@ -2,21 +2,21 @@ stages:
   - validate
   - update
 
-validate_workflows_dev:
+validate_dev:
   stage: validate
   image: gitlab-registry.cern.ch/cloud/ciadm
   script:
     - export OS_CLOUD=tstack
     - bash scripts/validate.sh
 
-validate_workflows_prod:
+validate_prod:
   stage: validate
   image: gitlab-registry.cern.ch/cloud/ciadm
   script:
     - export OS_CLOUD=cern
     - bash scripts/validate.sh
 
-update_workflows_dev:
+update_dev:
   stage: update
   image: gitlab-registry.cern.ch/cloud/ciadm
   only:
@@ -25,7 +25,7 @@ update_workflows_dev:
     - export OS_CLOUD=tstack
     - bash scripts/update.sh
 
-update_workflows_prod:
+update_prod:
   stage: update
   image: gitlab-registry.cern.ch/cloud/ciadm
   only:
