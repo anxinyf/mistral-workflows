@@ -13,10 +13,6 @@
 
 cd $CI_PROJECT_DIR
 
-# Copy locally the clouds.yaml to use the credentials
-echo "Copy the file with the cloud auth methods"
-cp scripts/clouds.yaml ./
-
 # Connect using kerberos credentials
 echo $MISTRALCI_PASSWORD | kinit mistralci@CERN.CH
 
