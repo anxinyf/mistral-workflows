@@ -1,0 +1,21 @@
+clouds:
+  cern:
+    auth_url: https://keystone.cern.ch/v3
+    auth_type: v3fedkerb
+    identity_provider: sssd
+    protocol: kerberos
+    mutual_auth: disabled
+    identity_api_version: 3
+    project_domain_id: default
+    project_name: Cloud Workflows
+    region_name: cern
+  tstack:
+    auth_url: https://keystonecmp.cern.ch/v3
+    auth_type: v3fedkerb
+    identity_provider: sssd
+    protocol: kerberos
+    mutual_auth: disabled
+    identity_api_version: 3
+    project_domain_id: default
+    project_name: Cloud Workflows
+    region_name: cern

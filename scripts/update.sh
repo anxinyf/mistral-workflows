@@ -8,15 +8,14 @@
 #        this is predefined by the runner
 #   - MISTRALCI_PASSWORD
 #        the password of the mistralci. if using gitlab define this in Settings/Variables
-#   - OS_AUTH_URL
-#   - OS_AUTH_TYPE
-#   - OS_MUTUAL_AUTH
-#   - OS_IDENTITY_API_VERSION
-#   - OS_PROJECT_DOMAIN_ID
-#   - OS_PROJECT_NAME
-#        Openstack credentials to upload the workbooks/workflows into the service
+#   - OS_CLOUD
+#        Cloud against we are uploading the workbooks/workflows into the service
 
 cd $CI_PROJECT_DIR
+
+# Copy locally the clouds.yaml to use the credentials
+echo "Copy the file with the cloud auth methods"
+cp scripts/clouds.yaml ./
 
 # Connect using kerberos credentials
 echo $MISTRALCI_PASSWORD | kinit mistralci@CERN.CH
