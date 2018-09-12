@@ -98,8 +98,8 @@ workflows:
           - update_volume_quota_io1
           - update_volume_quota_cp1
           - update_volume_quota_cpio1
-          - update_volume_quota_wig-cp1
-          - update_volume_quota_wig-cpio1
+          - update_volume_quota_wig_cp1
+          - update_volume_quota_wig_cpio1
 
       update_volume_quota_io1:
         action: cinder.quotas_update tenant_id=<% $.id %> volumes_io1=0 gigabytes_io1=0 snapshots_io1='-1'
@@ -110,10 +110,10 @@ workflows:
       update_volume_quota_cpio1:
         action: cinder.quotas_update tenant_id=<% $.id %> volumes_cpio1=0 gigabytes_cpio1=0 snapshots_cpio1='-1'
 
-      update_volume_quota_wig-cp1:
+      update_volume_quota_wig_cp1:
         action: cinder.quotas_update tenant_id=<% $.id %> volumes_wig-cp1=0 gigabytes_wig-cp1=0 snapshots_wig-cp1='-1'
 
-      update_volume_quota_wig-cpio1:
+      update_volume_quota_wig_cpio1:
         action: cinder.quotas_update tenant_id=<% $.id %> volumes_wig-cpio1=0 gigabytes_wig-cpio1=0 snapshots_wig-cpio1='-1'
 
       update_volume_quota_standard:
