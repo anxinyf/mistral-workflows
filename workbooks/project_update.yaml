@@ -19,15 +19,16 @@ workflows:
       description: <% $.description %>
       enabled: <% $.enabled %>
       owner: <% $.owner %>
-
+      openstack_id: <% $.openstack_id %>
     tasks:
       project_get:
-        action: keystone.projects_get
+        action: keystone.projects_find
         input:
-          project: <% $.id %>
+          tags: <% "fim_" + $.id %>
         publish:
           fim_skip: <% task(project_get).result.get("fim-skip") %>
           current_enabled: <% task(project_get).result.enabled %>
+          openstack_id: <% task(project_get).result.id %>
         on-success:
           # If project metadata has fim-skip=True, the project resources will not be affected
           - identity_update
@@ -37,7 +38,7 @@ workflows:
       service_shutdown:
         workflow: service_shutdown.init
         input:
-          id: <% $.id %>
+          id: <% $.openstack_id %>
         on-success:
           - identity_disable: <% $.current_enabled = true and $.enabled = false %>
 
@@ -52,13 +53,13 @@ workflows:
       identity_enable:
         action: keystone.projects_update
         input:
-          project: <% $.id %>
+          project: <% $.openstack_id %>
           enabled: True
 
       identity_disable:
         action: keystone.projects_update
         input:
-          project: <% $.id %>
+          project: <% $.openstack_id %>
           enabled: False
 
   identity_update:
@@ -71,9 +72,11 @@ workflows:
       - owner
     tasks:
       project_get:
-        action: keystone.projects_get
+        action: keystone.projects_find
         input:
-          project: <% $.id %>
+          tags: <% "fim_" + $.id %>
+        publish: 
+          openstack_id: <% task(project_get).result.id %>
         on-success:
           - update_project_name: <% not $.name.isEmpty() and $.name != task(project_get).result.name %>
           - update_project_description: <% not $.description.isEmpty() and $.description != task(project_get).result.description %>
@@ -82,20 +85,20 @@ workflows:
       update_project_name:
         action: keystone.projects_update
         input:
-         project: <% $.id %>
+         project: <% $.openstack_id %>
          name: <% $.name  %>
 
       update_project_description:
         action: keystone.projects_update
         input:
-          project: <% $.id %>
+          project: <% $.openstack_id %>
           description: <% $.description %>
 
       get_project_owner:
         action: keystone.role_assignments_list
         input:
           role: c93214972afe4fccbdb78fea78c362cd
-          project: <% $.id %>
+          project: <% $.openstack_id %>
         publish:
           owners: <% task(get_project_owner).result.user.id %>
         on-success:
@@ -107,7 +110,7 @@ workflows:
         input:
           role: c93214972afe4fccbdb78fea78c362cd
           user: <% $.old_owner %>
-          project: <% $.id %>
+          project: <% $.openstack_id %>
         on-success:
           - set_project_owner_as_member
 
@@ -116,7 +119,7 @@ workflows:
         input:
           role: 635d3bb896d84465b4452656cb4e4da6
           user: <% $.owner %>
-          project: <% $.id %>
+          project: <% $.openstack_id %>
         on-success:
           - set_project_owner
         on-error:
@@ -127,4 +130,4 @@ workflows:
         input:
           role: c93214972afe4fccbdb78fea78c362cd
           user: <% $.owner %>
-          project: <% $.id %>
+          project: <% $.openstack_id %>

@@ -16,16 +16,19 @@ workflows:
       owner: <% $.owner %>
       name: <% $.name %>
       enabled: <% $.enabled %>
-
+      openstack_id: <% $.openstack_id %>
     tasks:
       project_get:
-        action: keystone.projects_get
+        action: keystone.projects_find
         input:
-          project: <% $.id %>
+          tags: <% "fim_" + $.id %>
         publish:
           description: <% task(project_get).result.description %>
           name: <% task(project_get).result.name %>
           enabled: <% task(project_get).result.enabled %>
+          openstack_id: <% task(project_get).result.id %>
+        on-success:
+          - get_owner_role
 
       get_owner_role:
         action: keystone.roles_find
@@ -40,7 +43,7 @@ workflows:
         action: keystone.role_assignments_list
         input:
           role: <% $.role_owner_id %>
-          project: <% $.id %>
+          project: <% $.openstack_id %>
         publish:
           owner: <% task(get_project_owner).result[0].user.id %>
 
@@ -69,6 +72,11 @@ workflows:
           name: <% task(default_get).result.name %>
           enabled: <% task(default_get).result.enabled %>
           owner: <% task(default_get).result.owner %>
+          openstack_id: <% task(default_get).result.openstack_id %>
+        on-success:
+          - get_operator_role
+          - get_supporter_role
+          - services
 
       get_operator_role:
         action: keystone.roles_find
@@ -92,7 +100,7 @@ workflows:
         action: keystone.role_assignments_list
         input:
           role: <% $.role_operator_id %>
-          project: <% $.id %>
+          project: <% $.openstack_id %>
         publish:
           allowOperators: <% bool(task(allow_operators).result) %>
 
@@ -100,14 +108,14 @@ workflows:
         action: keystone.role_assignments_list
         input:
           role: <% $.role_supporter_id %>
-          project: <% $.id %>
+          project: <% $.openstack_id %>
         publish:
           allowSupporters: <% bool(task(allow_supporters).result) %>
 
       services:
         workflow: service_list.project
         input:
-          project: <% $.id %>
+          project: <% $.openstack_id %>
         publish:
           services: <% task(services).result.services %>
 
@@ -142,7 +150,8 @@ workflows:
           domain: "default"
         keep-result: false
         publish:
-          projects_all: <% task(retrieve_all_projects).result.select(dict(id => $.id, name => $.name, description => $.description, enabled => $.enabled)) %>
+          projects_all: <% task(retrieve_all_projects).result.select(dict(openstack_id => $.id, name => $.name, description => $.description, enabled => $.enabled, id => switch($.tags.where($.startsWith("fim_")).len() = 1 => $.tags.where($.startsWith("fim_")).toList()[0].replace("fim_", ""), 1 = 1 => $.id))) %>
+#          projects_all: <% task(retrieve_all_projects).result.select(dict(id => $.id, name => $.name, description => $.description, enabled => $.enabled)) %>
         on-success:
         - merge
 
@@ -150,4 +159,4 @@ workflows:
         join: all
         action: std.noop
         publish:
-          projects: <% task(retrieve_all_projects).published.projects_all.select(dict(id => $.id, name => $.name, description => $.description, enabled => $.enabled, owner => task(retrieve_all_owners).published.owners.get($.id)))%>
+          projects: <% task(retrieve_all_projects).published.projects_all.select(dict(openstack_id => $.openstack_id, id => $.id, name => $.name, description => $.description, enabled => $.enabled, owner => task(retrieve_all_owners).published.owners.get($.openstack_id)))%>

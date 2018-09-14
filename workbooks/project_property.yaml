@@ -12,9 +12,17 @@ workflows:
       - project
       - properties
     tasks:
+      find_project:
+        action: keystone.projects_find
+        input:
+          tags: <% "fim_" + $.project %>
+        publish:
+          openstack_id: <% task(find_project).result.id %>
+        on-success:
+          - set_project
       set_project:
         action: keystone.projects_update
-        input: <% $.properties.mergeWith(dict(project => $.project)) %>
+        input: <% $.properties.mergeWith(dict(project => $.openstack_id)) %>
 
   list:
     type: direct
@@ -25,8 +33,8 @@ workflows:
       properties: <% $.properties %>
     tasks:
       get_project:
-        action: keystone.projects_get
+        action: keystone.projects_find
         input:
-          project: <% $.project %>
+          tags: <% "fim_" + $.project %>
         publish:
           properties: <% task(get_project).result.delete('_info','_loaded','manager','links', 'domain_id','parent_id','is_domain','tags','id','name','description','enabled').items().select(dict(property_name => $.first(), property_value => $.last())) %>

@@ -14,11 +14,12 @@ workflows:
       - enabled
       - owner
     output:
-      id: <% $.project_id %>
+      id: <% $.id %>
       name: <% $.name %>
       description: <% $.description %>
       enabled: <% $.enabled %>
       owner: <% $.owner %>
+      openstack_id: <% $.openstack_id %>
 
     tasks:
       identity:
@@ -31,21 +32,21 @@ workflows:
           enabled: False
           owner: <% $.owner %>
         publish:
-          project_id: <% task(identity).result.id %>
+          openstack_id: <% task(identity).result.id %>
         on-success:
           - service_initialize
 
       service_initialize:
         workflow: service_initialize.base
         input:
-          id: <% $.project_id %>
+          id: <% $.openstack_id %>
         on-success:
           - enable_project
 
       enable_project:
         action: keystone.projects_update
         input:
-          project: <% $.id %>
+          project: <% $.openstack_id %>
           enabled: <% $.enabled %>
 
   identity:
@@ -58,7 +59,7 @@ workflows:
       - enabled
       - owner
     output:
-      id: <% $.project_id %>
+      id: <% $.openstack_id %>
       name: <% $.name %>
       description: <% $.description %>
       enabled: <% $.enabled %>
@@ -67,7 +68,7 @@ workflows:
       project_exists:
         action: keystone.projects_get project=<% $.id %>
         publish:
-          project_id: <% task(project_exists).result.id %>
+          openstack_id: <% task(project_exists).result.id %>
         on-success:
           - check_base_endpoint_group
           - get_owner_role_id
@@ -80,13 +81,12 @@ workflows:
       create_project:
         action: keystone.projects_create
         input:
-          id: <% $.id %>
           name: <% $.name %>
           domain: default
           description: <% $.description %>
           enabled: <% $.enabled %>
         publish:
-          project_id: <% task(create_project).result.id %>
+          openstack_id: <% task(create_project).result.id %>
         on-success:
           - check_base_endpoint_group
           - get_owner_role_id
@@ -96,16 +96,16 @@ workflows:
 
       check_base_endpoint_group:
         action: keystone.endpoint_filter_check_endpoint_group_in_project
-        input: 
-          project: <% $.project_id %>
+        input:
+          project: <% $.openstack_id %>
           endpoint_group: 0cf3334a82854c8e85ea4428c283dfc4
         on-error:
           - add_base_endpoint_group
 
       add_base_endpoint_group:
         action: keystone.endpoint_filter_add_endpoint_group_to_project
-        input: 
-          project: <% $.project_id %>
+        input:
+          project: <% $.openstack_id %>
           endpoint_group: 0cf3334a82854c8e85ea4428c283dfc4
 
       get_owner_role_id:
@@ -127,26 +127,28 @@ workflows:
         input:
           role: <% $.owner_role_id %>
           user: <% $.owner %>
-          project: <% $.project_id %>
+          project: <% $.openstack_id %>
 
       set_project_member:
         action: keystone.roles_grant
         input:
           role: <% $.member_role_id %>
           user: <% $.owner %>
-          project: <% $.project_id %>
+          project: <% $.openstack_id %>
 
       set_fim_properties:
         action: keystone.projects_update
         input:
-          project: <% $.project_id %>
+          project: <% $.openstack_id %>
           fim-lock: 'True'
           fim-skip: 'True'
+          tags:
+            - <% "fim_" + $.id %>
 
       set_personal_project_properties:
         action: keystone.projects_update
         input:
-          project: <% $.project_id %>
+          project: <% $.openstack_id %>
           accounting-group: 'personal'
           type: 'personal'
           network: 'GPN'

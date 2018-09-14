@@ -11,12 +11,13 @@ workflows:
       - id
     tasks:
       project_get:
-        action: keystone.projects_get
+        action: keystone.projects_find
         input:
-          project: <% $.id %>
+          tags: <% "fim_" + $.id %>
         publish:
           fim_lock: <% task(project_get).result.get("fim-lock") %>
           found: True
+          openstack_id: <% task(project_get).result.id %>
         publish-on-error:
           found: False
         on-success:
@@ -28,11 +29,11 @@ workflows:
       service_delete:
         workflow: service_delete.init
         input:
-          id: <% $.id %>
+          id: <% $.openstack_id %>
         on-success:
           - delete_project: <% $.found %>
 
       delete_project:
         action: keystone.projects_delete
         input:
-          project: <% $.id %>
+          project: <% $.openstack_id %>
