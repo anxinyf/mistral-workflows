@@ -378,3 +378,83 @@ workflows:
           server: <% $.instance.id %>
           key: expire_at
           value: <% $.expire_date %>
+
+  unexpire_instance:
+    type: direct
+    description: This workflow unexpires an instance
+    input:
+      - instance_id
+    tasks:
+      check_instance:
+        description: 'Retrieves information about the instance'
+        action: nova.servers_get
+        input:
+          server: <% $.instance_id %>
+        publish:
+          instance: <% dict(id => task(check_instance).result.id, name => task(check_instance).result.name, project_id => task(check_instance).result.tenant_id, expire_at => now().replace(hour => 0, minute=>0, second=>0, microsecond=>0) + timespan(days=>180)) %>
+        on-success:
+          - unlock_instance
+          - get_project
+          - get_project_owner
+
+      get_project:
+        description: 'Gets the name of the project'
+        action: keystone.projects_get
+        input:
+          project: <% task(check_instance).published.instance.project_id %>
+        publish:
+          project_name: <% task(get_project).result.name %>
+        on-success:
+          - send_mail_template
+
+      get_project_owner:
+        description: 'Gets the user with the owner role in the project'
+        action: keystone.role_assignments_list
+        keep-result: false
+        input:
+          project: <% $.instance.project_id %>
+          role: "c93214972afe4fccbdb78fea78c362cd"
+        publish:
+          owner: <% task(get_project_owner).result.select($.user.id) %>
+        on-success:
+          - send_mail_template
+
+      unlock_instance:
+        description: 'Unlocks the instance'
+        action: nova.servers_unlock
+        input:
+          server: <% $.instance.id %>
+        on-success:
+          - set_instance_metadata
+
+      set_instance_metadata:
+        description: 'Sets the expire_at metadata in the instance'
+        action: nova.servers_set_meta_item
+        input: 
+          server: <% task(check_instance).published.instance.id %>
+          key: expire_at
+          value: <% task(check_instance).published.instance.expire_at %>
+        on-success:
+          - start_instance
+
+      start_instance:
+        description: 'Starts the instance'
+        action: nova.servers_start
+        input:
+          server: <% $.instance.id %>
+        on-success:
+          - send_mail_template
+
+      send_mail_template:
+        join: all
+        description: 'Retrieve template from Gitlab'
+        workflow: send_mail_template
+        input:
+          to_addrs: <% $.owner.select(concat($,"@cern.ch")) %>
+          bcc_addrs: [cloud-infrastructure-expiration@cern.ch]
+          template: instance_expiration_unexpired_mail
+          replacements:
+            "{instance}": <% $.instance.name %>
+            "{project_name}": <% $.project_name %>
+            "{expire_date}": <% datetime($.instance.expire_at).format("%d %B %Y") %>
+            "{servicedesk_link}": 'https://cern.service-now.com/service-portal/report-ticket.do?name=request&fe=cloud-infrastructure'
