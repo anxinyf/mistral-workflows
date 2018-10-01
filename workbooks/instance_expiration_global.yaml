@@ -20,6 +20,8 @@ workflows:
   daily_global_expiration:
     type: direct
     description: This workflow checks all the projects with expiration and reacts accordingly
+    input:
+      - region: "cern"
     tasks:
       retrieve_all_projects:
         action: keystone.projects_list
@@ -40,12 +42,14 @@ workflows:
         workflow: instance_expiration_global.daily_project_expiration
         input:
           project: <% $.project %>
+          region: <% $.region %>
 
   daily_project_expiration:
     type: direct
     description: This workflow checks the expiration of machines and reacts accordingly.
     input:
       - project
+      - region
     tasks:
       retrieve_project_owner:
         description: 'Gets the user with the owner role in the project'
@@ -67,6 +71,7 @@ workflows:
           search_opts:
             all_tenants: 1
             project_id: <% $.project.id %>
+          action_region: <% $.region %>
         retry:
           delay: 10
           count: 5
@@ -83,6 +88,7 @@ workflows:
           instance: <% $.instance %>
           project: <% $.project %>
           owner: <% $.owner %>
+          region: <% $.region %>
 
   daily_instance_expiration:
     type: direct
@@ -91,6 +97,7 @@ workflows:
       - instance
       - project
       - owner
+      - region
     tasks:
       init:
         description: 'Initializes de variables used in the workflow'
@@ -125,6 +132,7 @@ workflows:
           server: <% $.instance.id %>
           key: expire_at
           value: <% task(init).published.get('max_expire_date') %>
+          action_region: <% $.region %>
         publish:
           instance: <% dict(id => $.instance.id, name => $.instance.name, expire_at => task(init).published.get('max_expire_date'), user_id => $.instance.user_id) %>
         on-success:
@@ -154,6 +162,7 @@ workflows:
           instance: <% $.instance %>
           project: <% $.project %>
           owner: <% $.owner %>
+          region: <% $.region %>
 
       delete_instance:
         description: 'Delete instance'
@@ -162,6 +171,7 @@ workflows:
           instance: <% $.instance %>
           project: <% $.project %>
           owner: <% $.owner %>
+          region: <% $.region %>
 
       failed_to_expire_instance:
         description: 'The expiration date has passed notify administrators'
@@ -201,12 +211,14 @@ workflows:
       - instance
       - project
       - owner
+      - region
     tasks:
       check_instance:
         description: 'Expires the instance'
         action: nova.servers_get
         input:
           server: <% $.instance.id %>
+          action_region: <% $.region %>
         on-success:
           - expire_instance
 
@@ -215,6 +227,7 @@ workflows:
         action: nova.servers_stop
         input:
           server: <% $.instance.id %>
+          action_region: <% $.region %>
         on-success:
           - lock_instance
         on-error:
@@ -225,6 +238,7 @@ workflows:
         action: nova.servers_lock
         input:
           server: <% $.instance.id %>
+          action_region: <% $.region %>
         on-success:
           - retrieve_template
 
@@ -249,12 +263,14 @@ workflows:
       - instance
       - project
       - owner
+      - region
     tasks:
       check_instance:
         description: 'Expires the instance'
         action: nova.servers_get
         input:
           server: <% $.instance.id %>
+          action_region: <% $.region %>
         on-success:
           - unlock_instance
 
@@ -263,6 +279,7 @@ workflows:
         action: nova.servers_unlock
         input:
           server: <% $.instance.id %>
+          action_region: <% $.region %>
         on-success:
           - delete_instance
 
@@ -271,6 +288,7 @@ workflows:
         action: nova.servers_delete
         input:
           server: <% $.instance.id %>
+          action_region: <% $.region %>
         on-success:
           - send_mail_template
 
@@ -308,6 +326,7 @@ workflows:
     description: This workflow sets the initial expiration of machines. It is used to deploy the expiration lifecycle
     input:
       - project_id
+      - region: "cern"
     tasks:
       project_exists:
         action: keystone.projects_get
@@ -334,6 +353,7 @@ workflows:
           search_opts:
             all_tenants: 1
             project_id: <% $.project_id %>
+          action_region: <% $.region %>
         publish:
           expire_date: <% now().replace(hour => 0, minute=>0, second=>0, microsecond=>0) + timespan(days=>180) %>
           instances: <% task(retrieve_all_instances).result.select(dict(id => $.id, name => $.name, expire_at => $.metadata.get('expire_at', ''), status => $.status)) %>
@@ -347,6 +367,7 @@ workflows:
         input:
           instance: <%$.instance %>
           expire_date: <% $.expire_date %>
+          region: <% $.region %>
 
   instance_expiration_initialize:
     type: direct
@@ -354,6 +375,7 @@ workflows:
     input:
       - instance
       - expire_date
+      - region
     tasks:
       init:
         description: Initializes de variables used in the workflow
@@ -378,18 +400,21 @@ workflows:
           server: <% $.instance.id %>
           key: expire_at
           value: <% $.expire_date %>
+          action_region: <% $.region %>
 
   unexpire_instance:
     type: direct
     description: This workflow unexpires an instance
     input:
       - instance_id
+      - region: "cern"
     tasks:
       check_instance:
         description: 'Retrieves information about the instance'
         action: nova.servers_get
         input:
           server: <% $.instance_id %>
+          action_region: <% $.region %>
         publish:
           instance: <% dict(id => task(check_instance).result.id, name => task(check_instance).result.name, project_id => task(check_instance).result.tenant_id, expire_at => now().replace(hour => 0, minute=>0, second=>0, microsecond=>0) + timespan(days=>180)) %>
         on-success:
@@ -424,6 +449,7 @@ workflows:
         action: nova.servers_unlock
         input:
           server: <% $.instance.id %>
+          action_region: <% $.region %>
         on-success:
           - set_instance_metadata
 
@@ -434,6 +460,7 @@ workflows:
           server: <% task(check_instance).published.instance.id %>
           key: expire_at
           value: <% task(check_instance).published.instance.expire_at %>
+          action_region: <% $.region %>
         on-success:
           - start_instance
 
@@ -442,6 +469,7 @@ workflows:
         action: nova.servers_start
         input:
           server: <% $.instance.id %>
+          action_region: <% $.region %>
         on-success:
           - send_mail_template
 
