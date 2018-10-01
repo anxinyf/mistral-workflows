@@ -26,3 +26,4 @@ extend_instance:
         server: <% task(check_instance).published.instance.id %>
         key: expire_at
         value: <% task(check_instance).published.instance.expire_at %>
+        action_region: <% $.region %>
