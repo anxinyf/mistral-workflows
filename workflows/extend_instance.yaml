@@ -9,7 +9,9 @@ extend_instance:
   tasks:
     check_instance:
       description: 'Retrieves information about the instance'
-      action: nova.servers_find id=<% $.instance_id %>
+      action: nova.servers_get
+      input:
+        server: <% $.instance_id %>
       publish:
         instance: <% dict(id => task(check_instance).result.id, expire_at => now().replace(hour => 0, minute=>0, second=>0, microsecond=>0) + timespan(days=>180)) %>
       on-success:
