@@ -1,4 +1,4 @@
-subject: '[Cloud] The Virtual Machine {instance} has expired'
+subject: '[Cloud] The Virtual Machine {instance} has been unexpired'
 body: |
   Dear Cloud Infrastructure user,
 
