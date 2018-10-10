@@ -15,7 +15,17 @@ extend_instance:
         server: <% $.instance_id %>
         action_region: <% $.region %>
       publish:
-        instance: <% dict(id => task(check_instance).result.id, expire_at => now().replace(hour => 0, minute=>0, second=>0, microsecond=>0) + timespan(days=>180)) %>
+        instance: <% dict(id => task(check_instance).result.id, locked => task(check_instance).result.locked, expire_at => now().replace(hour => 0, minute=>0, second=>0, microsecond=>0) + timespan(days=>180)) %>
+      on-success:
+        - set_instance_metadata: <% not $.instance.locked %>
+        - unlock_instance: <% $.instance.locked %>
+
+    unlock_instance:
+      description: 'Unlocks the instance'
+      action: nova.servers_unlock
+      input:
+        server: <% $.instance.id %>
+        action_region: <% $.region %>
       on-success:
         - set_instance_metadata
 
@@ -26,4 +36,13 @@ extend_instance:
         server: <% task(check_instance).published.instance.id %>
         key: expire_at
         value: <% task(check_instance).published.instance.expire_at %>
+        action_region: <% $.region %>
+      on-success:
+        - lock_instance: <% task(check_instance).published.instance.locked %>
+
+    lock_instance:
+      description: 'Locks the instance'
+      action: nova.servers_lock
+      input:
+        server: <% $.instance.id %>
         action_region: <% $.region %>
