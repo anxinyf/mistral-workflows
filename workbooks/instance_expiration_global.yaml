@@ -107,7 +107,7 @@ workflows:
           max_expire_date: <% now().replace(hour => 0, minute=>0, second=>0, microsecond=>0) + timespan(days=>180) %>
           mail_dates: [30, 15, 7, 5, 3, 2, 1]
           regexp_date: '^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}\.\d{6}$'
-          grace_period: 7
+          grace_period: 15
           skip_status: ['BUILD','ERROR']
         on-success:
           - check_instance_status
