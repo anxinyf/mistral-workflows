@@ -182,8 +182,32 @@ workflows:
     input:
       - id
     tasks:
-      empty_task:
-        action: std.noop
+      retrieve_access_key:
+        workflow: secret_retrieve
+        input:
+          name: rgw_access_key
+        publish:
+          access_key: <% task(retrieve_access_key).result %>
+        on-success:
+          - disable_user
+
+      retrieve_secret_key:
+        workflow: secret_retrieve
+        input:
+          name: rgw_secret_key
+        publish:
+          secret_key: <% task(retrieve_secret_key).result %>
+        on-success:
+          - disable_user
+
+      disable_user:
+        join: all
+        action: radosgw.user_update
+        input:
+          uid: <% $.id %>
+          suspended: true
+          secret_key: <% $.access_key %>
+          access_key: <% $.secret_key %>
 
   magnum:
     description: Disables the status of resources of a project on the container infrastructure service

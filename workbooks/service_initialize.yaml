@@ -183,8 +183,47 @@ workflows:
     input:
       - id
     tasks:
-      empty_task:
-        action: std.noop
+      retrieve_access_key:
+        workflow: secret_retrieve
+        input:
+          name: rgw_access_key
+        publish:
+          access_key: <% task(retrieve_access_key).result %>
+        on-success:
+          - create_user
+
+      retrieve_secret_key:
+        workflow: secret_retrieve
+        input:
+          name: rgw_secret_key
+        publish:
+          secret_key: <% task(retrieve_secret_key).result %>
+        on-success:
+          - create_user
+
+      create_user:
+        join: all
+        action: radosgw.user_create
+        input:
+          uid: <% $.id %>
+          display_name: <% $.id %>
+          type: keystone
+          generate_key: false
+          max_buckets: 1000
+          secret_key: <% $.access_key %>
+          access_key: <% $.secret_key %>
+        on-success:
+          - update_s3_quota
+
+      update_s3_quota:
+        action: radosgw.quota_set
+        input:
+          uid: <% $.id %>
+          max_objects: -1
+          max_size_kb: 1000000
+          enabled: true
+          secret_key: <% $.access_key %>
+          access_key: <% $.secret_key %>
 
   magnum:
     description: Initializes a project on the container infrastructure service and sets default quotas
