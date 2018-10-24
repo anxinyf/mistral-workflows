@@ -56,6 +56,13 @@ workflows:
         input:
           id: <% $.id %>
           endpoint_group: 53290f440379bc46bbcd3660f16f126d
+        on-success:
+          - service_initialize
+
+      service_initialize:
+        workflow: service_initialize.s3
+        input:
+          id: <% $.id %>
 
   ironic:
     description: Enables the Ironic service on a project

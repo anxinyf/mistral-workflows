@@ -177,6 +177,15 @@ workflows:
       empty_task:
         action: std.noop
 
+  s3:
+    description: Initializes a project on the S3 service and sets default quotas
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
+        action: std.noop
+
   magnum:
     description: Initializes a project on the container infrastructure service and sets default quotas
     type: direct

@@ -57,6 +57,7 @@ workflows:
           - cinder
           - manila
           - neutron
+          - s3
 
       cinder:
         workflow: cinder
@@ -75,6 +76,11 @@ workflows:
 
       neutron:
         workflow: neutron
+        input:
+          id: <% $.id %>
+
+      s3:
+        workflow: s3
         input:
           id: <% $.id %>
 
@@ -163,6 +169,15 @@ workflows:
 
   neutron:
     description: Disables the status of resources of a project on the network service
+    type: direct
+    input:
+      - id
+    tasks:
+      empty_task:
+        action: std.noop
+
+  s3:
+    description: Disables the status of resources of a project on the s3 service
     type: direct
     input:
       - id

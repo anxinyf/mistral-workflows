@@ -34,13 +34,6 @@ workflows:
     input:
       - id
     tasks:
-      service_shutdown:
-        workflow: service_shutdown.neutron
-        input:
-          id: <% $.id %>
-        on-success:
-          - remove_endpoint_group
-
       remove_endpoint_group:
         workflow: service_disable.remove_endpoint_group
         input:
